@@ -1,0 +1,27 @@
+# macOS and editor files
+.DS_Store
+._*
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# Local credentials; keep a shareable example if needed
+.env
+.env.*
+!.env.example
+
+# Local recordings, captures, and private show data
+/recordings/
+/captures/
+/local/
+
+# Runtime and build output
+*.log
+/logs/
+/tmp/
+.cache/
+/build/
+/dist/
+/coverage/
