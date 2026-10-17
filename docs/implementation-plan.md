@@ -86,7 +86,7 @@ Everything else follows the council: architecture, decision theory, gates, adver
 
 Record each one as an architecture decision record (ADR) in `docs/adr/`. Recommended defaults are below; Randy approves them. ADR-010 to 014 are the contracts added in revision 1.1.
 
-**Status (17 October 2026): Approved.** Randy adopted all recommendations in the table below (ADR-001 to ADR-014) as written. Each is now the accepted decision. The individual ADR files in `docs/adr/` are still to be written (task T-01); changing any decision, contract, or invariant from here needs a new ADR.
+**Status (17 October 2026): Approved.** Randy adopted all recommendations in the table below (ADR-001 to ADR-014) as written. Each is now the accepted decision and is recorded in `docs/adr/` (written in T-01). Changing any decision, contract, or invariant from here needs a new ADR.
 
 | ADR | Decision | Recommendation | Why |
 |---|---|---|---|
