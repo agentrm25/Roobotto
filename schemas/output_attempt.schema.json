@@ -1,0 +1,127 @@
+{
+  "$defs": {
+    "OccurrenceId": {
+      "additionalProperties": false,
+      "description": "Cue identity (ADR-012, I-6). The scheduler generation is deliberately not a field.",
+      "properties": {
+        "cue_id": {
+          "pattern": "^[a-z][a-z0-9_]{0,63}$",
+          "title": "Cue Id",
+          "type": "string"
+        },
+        "performance": {
+          "pattern": "^[a-z][a-z0-9_]{0,63}$",
+          "title": "Performance",
+          "type": "string"
+        },
+        "section_visit": {
+          "minimum": 1,
+          "title": "Section Visit",
+          "type": "integer"
+        },
+        "song_instance": {
+          "minimum": 0,
+          "title": "Song Instance",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "performance",
+        "song_instance",
+        "section_visit",
+        "cue_id"
+      ],
+      "title": "OccurrenceId",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "adapter": {
+      "enum": [
+        "mock",
+        "midi",
+        "osc",
+        "artnet"
+      ],
+      "title": "Adapter",
+      "type": "string"
+    },
+    "armed": {
+      "title": "Armed",
+      "type": "boolean"
+    },
+    "bytes_sent": {
+      "items": {
+        "maximum": 255,
+        "minimum": 0,
+        "type": "integer"
+      },
+      "title": "Bytes Sent",
+      "type": "array"
+    },
+    "command": {
+      "pattern": "^[a-z][a-z0-9_]{0,63}\\.[a-z][a-z0-9_]{0,63}$",
+      "title": "Command",
+      "type": "string"
+    },
+    "config_hash": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Config Hash",
+      "type": "string"
+    },
+    "device": {
+      "pattern": "^[a-z][a-z0-9_]{0,63}$",
+      "title": "Device",
+      "type": "string"
+    },
+    "generation": {
+      "minimum": 0,
+      "title": "Generation",
+      "type": "integer"
+    },
+    "occurrence": {
+      "$ref": "#/$defs/OccurrenceId"
+    },
+    "reason": {
+      "minLength": 1,
+      "title": "Reason",
+      "type": "string"
+    },
+    "result": {
+      "enum": [
+        "attempted",
+        "confirmed",
+        "failed",
+        "unknown"
+      ],
+      "title": "Result",
+      "type": "string"
+    },
+    "send_time_ns": {
+      "minimum": 0,
+      "title": "Send Time Ns",
+      "type": "integer"
+    },
+    "value": {
+      "pattern": "^[a-z0-9][a-z0-9_]{0,63}$",
+      "title": "Value",
+      "type": "string"
+    }
+  },
+  "required": [
+    "occurrence",
+    "generation",
+    "adapter",
+    "device",
+    "command",
+    "value",
+    "send_time_ns",
+    "config_hash",
+    "armed",
+    "reason",
+    "result"
+  ],
+  "title": "OutputAttempt",
+  "type": "object"
+}

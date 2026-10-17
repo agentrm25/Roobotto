@@ -1,0 +1,138 @@
+{
+  "$defs": {
+    "Authorization": {
+      "additionalProperties": false,
+      "description": "The performer action that authorized an occurrence (Section 5.4).",
+      "properties": {
+        "action": {
+          "enum": [
+            "go",
+            "back"
+          ],
+          "title": "Action",
+          "type": "string"
+        },
+        "event_id": {
+          "minLength": 1,
+          "title": "Event Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "event_id",
+        "action"
+      ],
+      "title": "Authorization",
+      "type": "object"
+    },
+    "OccurrenceId": {
+      "additionalProperties": false,
+      "description": "Cue identity (ADR-012, I-6). The scheduler generation is deliberately not a field.",
+      "properties": {
+        "cue_id": {
+          "pattern": "^[a-z][a-z0-9_]{0,63}$",
+          "title": "Cue Id",
+          "type": "string"
+        },
+        "performance": {
+          "pattern": "^[a-z][a-z0-9_]{0,63}$",
+          "title": "Performance",
+          "type": "string"
+        },
+        "section_visit": {
+          "minimum": 1,
+          "title": "Section Visit",
+          "type": "integer"
+        },
+        "song_instance": {
+          "minimum": 0,
+          "title": "Song Instance",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "performance",
+        "song_instance",
+        "section_visit",
+        "cue_id"
+      ],
+      "title": "OccurrenceId",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "authorized_by": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/Authorization"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "class": {
+      "enum": [
+        "decorative",
+        "standard",
+        "critical"
+      ],
+      "title": "Class",
+      "type": "string"
+    },
+    "due_ns": {
+      "minimum": 0,
+      "title": "Due Ns",
+      "type": "integer"
+    },
+    "generation": {
+      "minimum": 0,
+      "title": "Generation",
+      "type": "integer"
+    },
+    "id": {
+      "$ref": "#/$defs/OccurrenceId"
+    },
+    "intents": {
+      "minProperties": 1,
+      "patternProperties": {
+        "^[a-z][a-z0-9_]{0,63}\\.[a-z][a-z0-9_]{0,63}$": {
+          "pattern": "^[a-z0-9][a-z0-9_]{0,63}$",
+          "type": "string"
+        }
+      },
+      "title": "Intents",
+      "type": "object"
+    },
+    "lifecycle": {
+      "enum": [
+        "planned",
+        "scheduled",
+        "committed",
+        "sent",
+        "cancelled",
+        "expired"
+      ],
+      "title": "Lifecycle",
+      "type": "string"
+    },
+    "send_deadline_ns": {
+      "minimum": 0,
+      "title": "Send Deadline Ns",
+      "type": "integer"
+    }
+  },
+  "required": [
+    "id",
+    "generation",
+    "class",
+    "intents",
+    "due_ns",
+    "send_deadline_ns",
+    "lifecycle"
+  ],
+  "title": "CueOccurrence",
+  "type": "object"
+}

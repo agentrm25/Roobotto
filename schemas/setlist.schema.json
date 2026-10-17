@@ -1,0 +1,73 @@
+{
+  "$defs": {
+    "SetlistEntry": {
+      "additionalProperties": false,
+      "properties": {
+        "program_change": {
+          "anyOf": [
+            {
+              "maximum": 127,
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Program Change"
+        },
+        "song": {
+          "pattern": "^[a-z][a-z0-9_]{0,63}$",
+          "title": "Song",
+          "type": "string"
+        }
+      },
+      "required": [
+        "song"
+      ],
+      "title": "SetlistEntry",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "entries": {
+      "items": {
+        "$ref": "#/$defs/SetlistEntry"
+      },
+      "minItems": 1,
+      "title": "Entries",
+      "type": "array"
+    },
+    "id": {
+      "pattern": "^[a-z][a-z0-9_]{0,63}$",
+      "title": "Id",
+      "type": "string"
+    },
+    "kind": {
+      "const": "setlist",
+      "title": "Kind",
+      "type": "string"
+    },
+    "schema_version": {
+      "const": 0,
+      "title": "Schema Version",
+      "type": "integer"
+    },
+    "title": {
+      "minLength": 1,
+      "title": "Title",
+      "type": "string"
+    }
+  },
+  "required": [
+    "kind",
+    "schema_version",
+    "id",
+    "title",
+    "entries"
+  ],
+  "title": "Setlist",
+  "type": "object"
+}

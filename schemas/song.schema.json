@@ -1,0 +1,447 @@
+{
+  "$defs": {
+    "AdvanceOn": {
+      "additionalProperties": false,
+      "description": "The Helix snapshot change (1-8) that advances the band *into* this section.\n\nOnly mapped transitions count as performer intent (ADR-011, Section 5.4).",
+      "properties": {
+        "snapshot": {
+          "maximum": 8,
+          "minimum": 1,
+          "title": "Snapshot",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "snapshot"
+      ],
+      "title": "AdvanceOn",
+      "type": "object"
+    },
+    "Cue": {
+      "additionalProperties": false,
+      "properties": {
+        "at": {
+          "$ref": "#/$defs/CueAt"
+        },
+        "class": {
+          "enum": [
+            "decorative",
+            "standard",
+            "critical"
+          ],
+          "title": "Class",
+          "type": "string"
+        },
+        "id": {
+          "pattern": "^[a-z][a-z0-9_]{0,63}$",
+          "title": "Id",
+          "type": "string"
+        },
+        "on_miss": {
+          "anyOf": [
+            {
+              "enum": [
+                "skip",
+                "send_now"
+              ],
+              "type": "string"
+            },
+            {
+              "$ref": "#/$defs/FireLateWithin"
+            }
+          ],
+          "default": "send_now",
+          "title": "On Miss"
+        },
+        "on_uncertain": {
+          "default": "hold",
+          "enum": [
+            "hold",
+            "ask",
+            "abstain"
+          ],
+          "title": "On Uncertain",
+          "type": "string"
+        },
+        "requires": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Requires"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "state": {
+          "minProperties": 1,
+          "patternProperties": {
+            "^[a-z][a-z0-9_]{0,63}\\.[a-z][a-z0-9_]{0,63}$": {
+              "pattern": "^[a-z0-9][a-z0-9_]{0,63}$",
+              "type": "string"
+            }
+          },
+          "title": "State",
+          "type": "object"
+        }
+      },
+      "required": [
+        "id",
+        "at",
+        "class",
+        "state"
+      ],
+      "title": "Cue",
+      "type": "object"
+    },
+    "CueAt": {
+      "additionalProperties": false,
+      "properties": {
+        "bar": {
+          "default": 1,
+          "minimum": 1,
+          "title": "Bar",
+          "type": "integer"
+        },
+        "beat": {
+          "default": 1,
+          "minimum": 1,
+          "title": "Beat",
+          "type": "integer"
+        },
+        "offset_beats": {
+          "default": 0.0,
+          "title": "Offset Beats",
+          "type": "number"
+        },
+        "section": {
+          "pattern": "^[a-z][a-z0-9_]{0,63}$",
+          "title": "Section",
+          "type": "string"
+        }
+      },
+      "required": [
+        "section"
+      ],
+      "title": "CueAt",
+      "type": "object"
+    },
+    "Edge": {
+      "additionalProperties": false,
+      "description": "A non-sequential transition. The remainder of probability goes to the next section.",
+      "properties": {
+        "from": {
+          "pattern": "^[a-z][a-z0-9_]{0,63}$",
+          "title": "From",
+          "type": "string"
+        },
+        "prob": {
+          "exclusiveMinimum": 0,
+          "maximum": 1,
+          "title": "Prob",
+          "type": "number"
+        },
+        "to": {
+          "pattern": "^[a-z][a-z0-9_]{0,63}$",
+          "title": "To",
+          "type": "string"
+        }
+      },
+      "required": [
+        "from",
+        "to",
+        "prob"
+      ],
+      "title": "Edge",
+      "type": "object"
+    },
+    "Extendable": {
+      "additionalProperties": false,
+      "description": "The section may run longer, in blocks of ``unit`` bars.",
+      "properties": {
+        "prob": {
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Prob",
+          "type": "number"
+        },
+        "unit": {
+          "minimum": 1,
+          "title": "Unit",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "unit",
+        "prob"
+      ],
+      "title": "Extendable",
+      "type": "object"
+    },
+    "FireLateWithin": {
+      "additionalProperties": false,
+      "properties": {
+        "fire_late_within_beats": {
+          "exclusiveMinimum": 0,
+          "title": "Fire Late Within Beats",
+          "type": "number"
+        }
+      },
+      "required": [
+        "fire_late_within_beats"
+      ],
+      "title": "FireLateWithin",
+      "type": "object"
+    },
+    "Repeat": {
+      "additionalProperties": false,
+      "description": "The section may repeat up to ``max`` extra times.",
+      "properties": {
+        "max": {
+          "minimum": 1,
+          "title": "Max",
+          "type": "integer"
+        },
+        "prob": {
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Prob",
+          "type": "number"
+        }
+      },
+      "required": [
+        "max",
+        "prob"
+      ],
+      "title": "Repeat",
+      "type": "object"
+    },
+    "Requires": {
+      "additionalProperties": false,
+      "properties": {
+        "corroborate_by": {
+          "items": {
+            "enum": [
+              "footswitch",
+              "mapped_snapshot",
+              "drum_pattern",
+              "vocal_activity"
+            ],
+            "type": "string"
+          },
+          "title": "Corroborate By",
+          "type": "array"
+        },
+        "posterior_min": {
+          "anyOf": [
+            {
+              "maximum": 1,
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Posterior Min"
+        },
+        "within_bars": {
+          "anyOf": [
+            {
+              "minimum": 1,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Within Bars"
+        }
+      },
+      "title": "Requires",
+      "type": "object"
+    },
+    "Section": {
+      "additionalProperties": false,
+      "properties": {
+        "advance_on": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/AdvanceOn"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "bars": {
+          "minimum": 1,
+          "title": "Bars",
+          "type": "integer"
+        },
+        "ends": {
+          "default": false,
+          "title": "Ends",
+          "type": "boolean"
+        },
+        "extendable": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Extendable"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "id": {
+          "pattern": "^[a-z][a-z0-9_]{0,63}$",
+          "title": "Id",
+          "type": "string"
+        },
+        "lyric_anchor": {
+          "anyOf": [
+            {
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Lyric Anchor"
+        },
+        "model_as": {
+          "anyOf": [
+            {
+              "pattern": "^[a-z][a-z0-9_]{0,63}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Model As"
+        },
+        "repeat": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Repeat"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "vocal": {
+          "default": false,
+          "title": "Vocal",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "id",
+        "bars"
+      ],
+      "title": "Section",
+      "type": "object"
+    },
+    "Tempo": {
+      "additionalProperties": false,
+      "properties": {
+        "nominal": {
+          "exclusiveMinimum": 0,
+          "title": "Nominal",
+          "type": "number"
+        },
+        "range": {
+          "items": {
+            "exclusiveMinimum": 0,
+            "type": "number"
+          },
+          "maxItems": 2,
+          "minItems": 2,
+          "title": "Range",
+          "type": "array"
+        }
+      },
+      "required": [
+        "nominal",
+        "range"
+      ],
+      "title": "Tempo",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "cues": {
+      "items": {
+        "$ref": "#/$defs/Cue"
+      },
+      "title": "Cues",
+      "type": "array"
+    },
+    "graph": {
+      "items": {
+        "$ref": "#/$defs/Edge"
+      },
+      "title": "Graph",
+      "type": "array"
+    },
+    "id": {
+      "pattern": "^[a-z][a-z0-9_]{0,63}$",
+      "title": "Id",
+      "type": "string"
+    },
+    "kind": {
+      "const": "song",
+      "title": "Kind",
+      "type": "string"
+    },
+    "meter": {
+      "title": "Meter",
+      "type": "string"
+    },
+    "schema_version": {
+      "const": 0,
+      "title": "Schema Version",
+      "type": "integer"
+    },
+    "sections": {
+      "items": {
+        "$ref": "#/$defs/Section"
+      },
+      "minItems": 1,
+      "title": "Sections",
+      "type": "array"
+    },
+    "tempo": {
+      "$ref": "#/$defs/Tempo"
+    },
+    "title": {
+      "minLength": 1,
+      "title": "Title",
+      "type": "string"
+    }
+  },
+  "required": [
+    "kind",
+    "schema_version",
+    "id",
+    "title",
+    "tempo",
+    "meter",
+    "sections"
+  ],
+  "title": "Song",
+  "type": "object"
+}

@@ -1,0 +1,174 @@
+{
+  "$defs": {
+    "CueAt": {
+      "additionalProperties": false,
+      "properties": {
+        "bar": {
+          "default": 1,
+          "minimum": 1,
+          "title": "Bar",
+          "type": "integer"
+        },
+        "beat": {
+          "default": 1,
+          "minimum": 1,
+          "title": "Beat",
+          "type": "integer"
+        },
+        "offset_beats": {
+          "default": 0.0,
+          "title": "Offset Beats",
+          "type": "number"
+        },
+        "section": {
+          "pattern": "^[a-z][a-z0-9_]{0,63}$",
+          "title": "Section",
+          "type": "string"
+        }
+      },
+      "required": [
+        "section"
+      ],
+      "title": "CueAt",
+      "type": "object"
+    },
+    "FireLateWithin": {
+      "additionalProperties": false,
+      "properties": {
+        "fire_late_within_beats": {
+          "exclusiveMinimum": 0,
+          "title": "Fire Late Within Beats",
+          "type": "number"
+        }
+      },
+      "required": [
+        "fire_late_within_beats"
+      ],
+      "title": "FireLateWithin",
+      "type": "object"
+    },
+    "Requires": {
+      "additionalProperties": false,
+      "properties": {
+        "corroborate_by": {
+          "items": {
+            "enum": [
+              "footswitch",
+              "mapped_snapshot",
+              "drum_pattern",
+              "vocal_activity"
+            ],
+            "type": "string"
+          },
+          "title": "Corroborate By",
+          "type": "array"
+        },
+        "posterior_min": {
+          "anyOf": [
+            {
+              "maximum": 1,
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Posterior Min"
+        },
+        "within_bars": {
+          "anyOf": [
+            {
+              "minimum": 1,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Within Bars"
+        }
+      },
+      "title": "Requires",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "at": {
+      "$ref": "#/$defs/CueAt"
+    },
+    "class": {
+      "enum": [
+        "decorative",
+        "standard",
+        "critical"
+      ],
+      "title": "Class",
+      "type": "string"
+    },
+    "id": {
+      "pattern": "^[a-z][a-z0-9_]{0,63}$",
+      "title": "Id",
+      "type": "string"
+    },
+    "on_miss": {
+      "anyOf": [
+        {
+          "enum": [
+            "skip",
+            "send_now"
+          ],
+          "type": "string"
+        },
+        {
+          "$ref": "#/$defs/FireLateWithin"
+        }
+      ],
+      "default": "send_now",
+      "title": "On Miss"
+    },
+    "on_uncertain": {
+      "default": "hold",
+      "enum": [
+        "hold",
+        "ask",
+        "abstain"
+      ],
+      "title": "On Uncertain",
+      "type": "string"
+    },
+    "requires": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/Requires"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "state": {
+      "minProperties": 1,
+      "patternProperties": {
+        "^[a-z][a-z0-9_]{0,63}\\.[a-z][a-z0-9_]{0,63}$": {
+          "pattern": "^[a-z0-9][a-z0-9_]{0,63}$",
+          "type": "string"
+        }
+      },
+      "title": "State",
+      "type": "object"
+    }
+  },
+  "required": [
+    "id",
+    "at",
+    "class",
+    "state"
+  ],
+  "title": "Cue",
+  "type": "object"
+}

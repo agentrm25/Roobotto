@@ -8,9 +8,14 @@ Versions and licenses below come from PyPI metadata; confirm against `uv.lock` w
 
 ## Core runtime
 
-None yet. Runtime dependencies (numpy, scipy, librosa, soundfile, sounddevice, mido,
-python-rtmidi, python-osc, pydantic, PyYAML, rich, textual, matplotlib, mir_eval) are added
-by the task cards that first need them, per `docs/implementation-plan.md` Section 11.
+| Package | Version | License | Used for |
+|---|---|---|---|
+| pydantic (with annotated-types, pydantic-core, typing-inspection) | 2.14.1 | MIT | Config and message schemas, JSON Schema export (ADR-004) |
+| PyYAML | 6.0.3 | MIT | Reading song, rig and setlist files (ADR-004) |
+
+The remaining runtime dependencies (numpy, scipy, librosa, soundfile, sounddevice, mido,
+python-rtmidi, python-osc, rich, textual, matplotlib, mir_eval) are added by the task cards
+that first need them, per `docs/implementation-plan.md` Section 11.
 
 ## Development tools
 

@@ -1,0 +1,68 @@
+{
+  "$defs": {
+    "OccurrenceId": {
+      "additionalProperties": false,
+      "description": "Cue identity (ADR-012, I-6). The scheduler generation is deliberately not a field.",
+      "properties": {
+        "cue_id": {
+          "pattern": "^[a-z][a-z0-9_]{0,63}$",
+          "title": "Cue Id",
+          "type": "string"
+        },
+        "performance": {
+          "pattern": "^[a-z][a-z0-9_]{0,63}$",
+          "title": "Performance",
+          "type": "string"
+        },
+        "section_visit": {
+          "minimum": 1,
+          "title": "Section Visit",
+          "type": "integer"
+        },
+        "song_instance": {
+          "minimum": 0,
+          "title": "Song Instance",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "performance",
+        "song_instance",
+        "section_visit",
+        "cue_id"
+      ],
+      "title": "OccurrenceId",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Append-only, written to disk before the send. Any record blocks a second send (I-5, I-7).\n\nKeyed by occurrence only: the generation is not a field (I-6).",
+  "properties": {
+    "first_attempt_ns": {
+      "minimum": 0,
+      "title": "First Attempt Ns",
+      "type": "integer"
+    },
+    "occurrence": {
+      "$ref": "#/$defs/OccurrenceId"
+    },
+    "result": {
+      "enum": [
+        "attempting",
+        "attempted",
+        "confirmed",
+        "failed",
+        "unknown"
+      ],
+      "title": "Result",
+      "type": "string"
+    }
+  },
+  "required": [
+    "occurrence",
+    "first_attempt_ns",
+    "result"
+  ],
+  "title": "FiredLedgerRecord",
+  "type": "object"
+}
