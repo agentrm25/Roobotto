@@ -35,6 +35,47 @@ See [examples/songs/synthetic_anthem.yaml](../examples/songs/synthetic_anthem.ya
   Tracker evidence alone never fires a critical cue (ADR-013).
 - **`lyric_anchor`** needs `vocal: true` and may appear only in files under `local/` (ADR-008).
 
+### How a song is expanded (bar grid)
+
+The tracker and cue engine do not read the YAML directly. They use the bar grid built by
+`roobotto.arrangement.expand`, one cell per `(section, visit, bar)`. The rules a song author
+needs to know:
+
+- **Visits are counted per section.** A repeated `chorus3` has visits 1, 2 and 3; `verse2` is
+  its own section, so its first pass is visit 1. A new visit creates new cue occurrences.
+- **At the end of a section** the band picks one outcome: extend (`extendable`, same visit,
+  `unit` more bars), repeat (`repeat`, new visit, at most `max` extra times), jump along a
+  `graph` edge, or go to the next section (or end the song, for an `ends` section). The next
+  section gets whatever probability the others leave.
+- **A self-loop edge and `extendable`/`repeat` are the same event written twice**, so their
+  `prob` must match. A section that is both `extendable` and `repeat` cannot have a self-loop
+  edge; leave the edge out and give each its own `prob`.
+- **Graph edges must point forward** (to a later section). A section that was already played
+  cannot be jumped back to in v0, because that would make the visit number depend on how the
+  band got there. Use `repeat` for a repeated section.
+- **Extension has no declared limit**, so expansion allows 2 extra blocks by default
+  (`max_extensions`). A cell where that cap removed an outcome is listed in
+  `BarGrid.truncated`.
+- These rules are checked when a song is expanded, not by `validate-config` (yet), and an
+  expansion with more than 10,000 possible paths is refused.
+
+### Production-equivalent positions
+
+Two beat positions are *production-equivalent* when the rig would be in the same state and the
+same cues would be coming up (within a horizon you choose, in beats). Verse 1 and verse 2 are
+equivalent once the same look is on and the next cues match. Until then, telling them apart does
+not change what the rig has to do. This is computed by
+`roobotto.cues.equivalence.production_classes` from the cue sheet:
+
+- A cue counts by **what it asks for** (class, `state`, `on_miss`, `requires`,
+  `on_uncertain`), not by its id or the section it sits under.
+- **Active state** is the last value each intent was set to by a cue already due. A position
+  reached by different routes can have several possible states; all of them have to match.
+- A cue with a negative `offset_beats` is part of the future of every route that goes on to
+  enter its section, and of no other route. A cue due before the performance starts never fires.
+- A longer horizon can only split classes, never merge them. Adding a cue for a new device can
+  only split classes too.
+
 ## Rig (`kind: rig`)
 
 See [examples/rig.template.yaml](../examples/rig.template.yaml).
