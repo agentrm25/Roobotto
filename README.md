@@ -1,6 +1,6 @@
-# OpenStage
+# Roobotto
 
-OpenStage is a planned open-source stage manager for live bands. It aims to follow
+Roobotto is a planned open-source stage manager for live bands. It aims to follow
 live audio and trigger preprogrammed MIDI cues while the band plays naturally,
 without requiring a click track or backing track.
 
@@ -16,6 +16,11 @@ without requiring a click track or backing track.
 This repository contains the initial project scaffold only. Audio following,
 MIDI control, and hardware integrations are not implemented yet. The application
 stack and open-source license have not been selected.
+
+## Planning
+
+The [LLM Council report](Conceiving_the_Roobotto_Project-2026-10-16.html) captures
+the initial research and design proposals.
 
 ## Local files
 
