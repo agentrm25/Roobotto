@@ -60,6 +60,12 @@ SONG_DOC: dict[str, Any] = {
             "state": {"synth.patch": "bright"},
         },
         {
+            "id": "chorus_lights",
+            "at": {"section": "chorus"},
+            "class": "standard",
+            "state": {"lights.color": "warm", "lights.strobe": "hit"},
+        },
+        {
             "id": "solo_lead",
             "at": {"section": "solo"},
             "class": "critical",
@@ -100,6 +106,7 @@ def _rig_doc(profile: str) -> dict[str, Any]:
         ports.append({"id": "usb_out", "direction": "out", "transport": "usb"})
     else:
         ports.append({"id": "mock_out_synth", "direction": "out", "transport": "mock"})
+    ports.append({"id": "mock_out_lights", "direction": "out", "transport": "mock"})
     return {
         "kind": "rig",
         "schema_version": 0,
@@ -197,6 +204,32 @@ def _rig_doc(profile: str) -> dict[str, Any]:
                         "evidence": {"bench_log": "captures/test-fixture/not-a-real-bench-log.txt"},
                         "min_interval_ms": 250,
                     }
+                },
+            },
+            {
+                "id": "lights",
+                "kind": "fixture_lights",
+                "owner": "roobotto",
+                "receives": [{"port": "mock_out_lights", "channel": 5, "behavior": "intended"}],
+                "commands": {
+                    "color": {
+                        "type": "state",
+                        "port": "mock_out_lights",
+                        "channel": 5,
+                        "values": {"warm": {"kind": "control_change", "data1": 20, "data2": 1}},
+                        "status": "documented",
+                        "evidence": {"source": "E-07"},
+                        "min_interval_ms": 5,
+                    },
+                    "strobe": {
+                        "type": "one_shot",
+                        "port": "mock_out_lights",
+                        "channel": 5,
+                        "values": {"hit": {"kind": "note_on", "data1": 40, "data2": 127}},
+                        "status": "documented",
+                        "evidence": {"source": "E-07"},
+                        "min_interval_ms": 5,
+                    },
                 },
             },
         ],

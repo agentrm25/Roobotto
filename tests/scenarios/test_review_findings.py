@@ -9,7 +9,7 @@ from roobotto.config.rig import Rig
 from roobotto.cues.ledger import FiredLedger, LedgerCorruptError
 from roobotto.cues.supervisor import Commit, Intent, Supervisor
 from roobotto.engine.show import ShowConfig
-from roobotto.messages import Authorization, FiredLedgerRecord, OccurrenceId
+from roobotto.messages import Authorization, FiredLedgerRecord, OccurrenceId, OutputAttempt
 from spine_support import BAR_MS, MS, World, rig_doc, show
 
 
@@ -129,7 +129,11 @@ def test_resume_sends_nothing_before_the_next_authorized_go() -> None:
     assert visits(w)[-1] == ("verse", 1)
     w.press()  # the next authorized GO, quantized to the tracker's predicted downbeat
     w.wait(2100)
-    assert {a.occurrence.cue_id for a in w.attempts} == {"chorus_scene", "chorus_synth"}
+    assert {a.occurrence.cue_id for a in w.attempts} == {
+        "chorus_scene",
+        "chorus_synth",
+        "chorus_lights",
+    }
     assert not w.spine.engine.awaiting_go
 
 
@@ -215,7 +219,8 @@ def test_rate_limit_is_per_device_across_commands() -> None:
     two_commands = Rig.model_validate(doc)
 
     def submit(sup: Supervisor, c: Commit, now: int) -> tuple[list[Any], list[Any]]:
-        return sup.submit(c, now_ns=now, generation=0, stopped=False, armed=False)
+        result = sup.submit(c, now_ns=now, generation=0, stopped=False, armed=False)
+        return result.attempts, result.refusals
 
     sup = _supervisor(two_commands)
     attempts, _ = submit(sup, _commit(("synth", "patch", "bright"), cue="a"), 10**9)
@@ -225,11 +230,23 @@ def test_rate_limit_is_per_device_across_commands() -> None:
     attempts, _ = submit(sup, _commit(("synth", "mode", "mono"), cue="c"), 10**9 + 250 * MS)
     assert len(attempts) == 1
 
+    # Within one cue the second command is spaced out, not dropped (ADR-017). The device's
+    # 250 ms rate limit is longer than the 10 ms spacing, so it sets the gap.
     sup = _supervisor(two_commands)
     both = _commit(("synth", "patch", "bright"), ("synth", "mode", "mono"), cue="d")
-    attempts, refusals = submit(sup, both, 10**9)
-    assert [a.command for a in attempts] == ["synth.patch"]
-    assert "rate limit" in refusals[0].reason
+    result = sup.submit(both, now_ns=10**9, generation=0, stopped=False, armed=False)
+    assert [a.command for a in result.attempts] == ["synth.patch"]
+    assert result.refusals == []
+    assert [(d.intent, d.send_at_ns) for d in result.deferred] == [("synth.mode", 10**9 + 250 * MS)]
+    flush_args: dict[str, Any] = {
+        "generation": 0,
+        "stopped": False,
+        "armed": False,
+        "overridden": frozenset[str](),
+    }
+    assert sup.flush(now_ns=10**9 + 249 * MS, **flush_args) == []
+    [(_, attempt)] = sup.flush(now_ns=10**9 + 250 * MS, **flush_args)
+    assert isinstance(attempt, OutputAttempt) and attempt.command == "synth.mode"
 
 
 def test_operator_cannot_enable_a_lost_tracker() -> None:

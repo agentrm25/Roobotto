@@ -73,6 +73,9 @@ def _describe(record: dict[str, Any], origin: int) -> str | None:
             f"{seconds:9.3f} s  SEND    {record['command']}={record['value']}  {where}  "
             f"-> {record['adapter']}  ({record['reason']})"
         )
+    if record["type"] == "deferred":
+        later = (record["send_at_ns"] - record["t_ns"]) / 1_000_000
+        return f"{seconds:9.3f} s  DEFER   {record['intent']}  {where}  (+{later:g} ms, ADR-017)"
     if record["type"] == "refusal":
         return f"{seconds:9.3f} s  REFUSE  {record['intent'] or '*'}  {where}  ({record['reason']})"
     if record["type"] == "decision" and record.get("kind") in ("ask", "abstain", "hold"):

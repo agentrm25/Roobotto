@@ -56,6 +56,16 @@ The supervisor also refuses a send when:
   The target itself must also list that port and channel as intended. This repeats the rig
   validator's check (I-13).
 
+**Two commands to one device in one cue** (ADR-017). The first goes at once. Each later one is
+deferred by `timing.same_device_spacing_ms` (10 ms) or the device's rate limit, whichever is
+longer. It is refused at once if that would land past the cue's `on_miss` window. When it falls
+due, it is checked again, and dropped instead of sent in any of these cases:
+
+- STOP is active
+- the generation has changed
+- the performer changed that device in this visit
+- any send-time check fails
+
 ## Authority
 
 **Performer intent comes from two places only** (ADR-011): the press edge of a press-gesture
@@ -158,10 +168,8 @@ I-17 (gestures) lands with T-05.
 - **Unverified input reports.** The template's Helix reports are `unknown` until H-1 and H-2, so
   on real hardware Helix snapshots are tracker evidence only, never a GO (E-25).
 - **Rate limits across restarts.** The supervisor's rate-limit memory does not survive a restart.
-- **Two commands to one device in one cue.** Per-device rate limits refuse the second intent,
-  and the ledger then closes the occurrence, so that intent is lost. No song does this today.
-  Validation could reject such cues, or the supervisor could space them out; either is a
-  contract decision for the owner.
+- **Spacing and skip windows.** A cue with `on_miss: skip` cannot space two commands to one device
+  (ADR-017), so its second intent is refused and logged.
 - **Not yet built.** Tap and hold gestures (BACK, MANUAL), the class L late window and the
   table-driven GO policy come with T-05. EXTEND and tracker-detected repeats come with M4.
 - **Not tested on hardware.** No command is bench-verified, so nothing has reached hardware.

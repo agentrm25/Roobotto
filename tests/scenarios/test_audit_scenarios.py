@@ -83,7 +83,7 @@ def test_f7_cancel_reschedule_relocalize_reconnect_same_visit_no_second_one_shot
         window_end_ns=10**15,
         authorized_by=None,
     )
-    attempts, refusals = w.spine.supervisor.submit(
+    attempts, refusals, _ = w.spine.supervisor.submit(
         forced, now_ns=w.clock.now_ns(), generation=forced.generation, stopped=False, armed=False
     )
     assert attempts == [] and "fired ledger" in refusals[0].reason

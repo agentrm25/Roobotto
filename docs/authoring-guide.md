@@ -32,6 +32,10 @@ See [examples/songs/synthetic_anthem.yaml](../examples/songs/synthetic_anthem.ya
 - **Cues** have a unique `id`, a position (`section`, `bar`, `beat`, optional `offset_beats`,
   negative to anticipate), a `class`, and `state`: intents such as `mvp.scene: chorus`, never
   bytes. `on_miss` is `skip`, `send_now` (default) or `{fire_late_within_beats: N}`.
+- **Two commands to one device** in one cue go out one after the other. The gap is
+  `timing.same_device_spacing_ms` in the rig (10 ms) or the device's `min_interval_ms`, whichever
+  is longer (ADR-017). With `on_miss: skip` there is no room for the gap, so the second command
+  is refused.
 - **Classes:** `decorative`, `standard`, `critical`. There is no `excluded` class: hazardous
   effects are never automated.
 - **Critical cues** must list `footswitch` or `mapped_snapshot` in `requires.corroborate_by`.

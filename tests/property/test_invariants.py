@@ -420,8 +420,15 @@ class SpineMachine(RuleBasedStateMachine):
                 self.confirmed = False
                 self.awaiting_go = True
             elif kind == "output_attempt":
-                assert commit is not None, "every attempt follows its commit"
-                self._check_attempt(r, commit, rig, cue_section)
+                # A deferred send (ADR-017) goes out on a later step than its commit.
+                owner = commit if commit and occ_key(commit) == occ_key(r) else None
+                owner = owner or self.commits.get(occ_key(r))
+                assert owner is not None, "every attempt belongs to a commit"
+                self._check_attempt(r, owner, rig, cue_section)
+            elif kind == "deferred":
+                deferred_window = self.commits[occ_key(r)]["window_end_ns"]
+                if r["send_at_ns"] > deferred_window:
+                    self.violations["I-4"].append(f"{occ_key(r)} deferred past its window")
 
     def _check_authorization(
         self, event_id: str | None, what: str, invariant: str = "I-16"

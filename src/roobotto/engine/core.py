@@ -206,6 +206,10 @@ class Engine:
         """Feedback from the supervisor: what was attempted for a commit made this step."""
         if not commit.resync:
             self.scheduler.mark(commit.occurrence.key, "sent" if attempts else "cancelled")
+        self.on_attempts(commit, attempts)
+
+    def on_attempts(self, commit: Commit, attempts: list[OutputAttempt]) -> None:
+        """Feedback for sends, including deferred ones that went out on a later step."""
         ports = {p.id: p for p in self.rig.ports}
         for attempt in attempts:
             device = self.rig.device(attempt.device)

@@ -470,6 +470,12 @@
           "title": "Late Window Bars",
           "type": "number"
         },
+        "same_device_spacing_ms": {
+          "default": 10,
+          "minimum": 1,
+          "title": "Same Device Spacing Ms",
+          "type": "integer"
+        },
         "send_margin_ms": {
           "default": 5,
           "minimum": 0,

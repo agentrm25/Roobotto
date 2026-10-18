@@ -9,8 +9,8 @@ from roobotto.adapters.midi import MidiAdapter
 from roobotto.adapters.mock import MockAdapter
 from roobotto.config.rig import Listen, Rig
 from roobotto.cues.ledger import FiredLedger
-from roobotto.cues.supervisor import Commit, Intent, Supervisor
-from roobotto.messages import Authorization, FiredLedgerRecord, OccurrenceId
+from roobotto.cues.supervisor import Commit, Intent, Refusal, Supervisor
+from roobotto.messages import Authorization, FiredLedgerRecord, OccurrenceId, OutputAttempt
 from spine_support import MS, RecordingBackend, rig
 
 HASH = "c" * 64
@@ -51,8 +51,9 @@ def make(
 
 def submit(
     sup: Supervisor, c: Commit, *, now: int = 10**9, armed: bool = False, stopped: bool = False
-):
-    return sup.submit(c, now_ns=now, generation=0, stopped=stopped, armed=armed)
+) -> tuple[list[OutputAttempt], list[Refusal]]:
+    result = sup.submit(c, now_ns=now, generation=0, stopped=stopped, armed=armed)
+    return result.attempts, result.refusals
 
 
 SYNTH = ("synth", "patch", "bright")

@@ -79,7 +79,7 @@ class Spine:
                 )
                 continue
             new.append(effect.as_record(now))
-            attempts, refusals = self.supervisor.submit(
+            attempts, refusals, deferred = self.supervisor.submit(
                 effect,
                 now_ns=now,
                 generation=self.engine.scheduler.generation,
@@ -88,13 +88,38 @@ class Spine:
             )
             self.engine.on_commit_result(effect, attempts)
             self.attempts.extend(attempts)
-            new.extend(
-                {"type": "output_attempt", "t_ns": now, **a.model_dump(mode="json")}
-                for a in attempts
-            )
+            new.extend(_attempt_record(a, now) for a in attempts)
             new.extend(r.as_record() for r in refusals)
+            new.extend(d.as_record() for d in deferred)
+        new.extend(self._flush())
         self.records.extend(new)
         return new
+
+    def _flush(self) -> list[Record]:
+        """Send deferred intents that are due (ADR-017)."""
+        engine = self.engine
+        now = engine.now_ns
+        out: list[Record] = []
+        for commit, result in self.supervisor.flush(
+            now_ns=now,
+            generation=engine.scheduler.generation,
+            stopped=engine.stopped,
+            armed=engine.armed,
+            overridden=frozenset(engine.visit.overridden) if engine.visit else frozenset(),
+        ):
+            if isinstance(result, OutputAttempt):
+                engine.on_attempts(commit, [result])
+                self.attempts.append(result)
+                out.append(_attempt_record(result, now))
+            else:
+                out.append(result.as_record())
+        return out
+
+    def next_wakeup_ns(self) -> int | None:
+        """When the wrapper must tick next: an engine deadline or a deferred send."""
+        times = [t for t in (self.engine.next_wakeup_ns(), self.supervisor.next_due_ns()) if t]
+        future = [t for t in times if t > self.engine.now_ns]
+        return min(future) if future else None
 
     def header(self) -> TraceHeader:
         return TraceHeader(
@@ -107,6 +132,10 @@ class Spine:
 
     def decision_hash(self) -> str:
         return decision_hash(self.records, self.origin_ns or 0)
+
+
+def _attempt_record(attempt: OutputAttempt, now: int) -> Record:
+    return {"type": "output_attempt", "t_ns": now, **attempt.model_dump(mode="json")}
 
 
 class Runner:
@@ -148,7 +177,7 @@ class Runner:
         if not isinstance(clock, SimClock):
             raise TypeError("run_until needs a SimClock; a live wrapper uses timers")
         out: list[Record] = []
-        while (wake := self.spine.engine.next_wakeup_ns()) is not None and wake <= t_ns:
+        while (wake := self.spine.next_wakeup_ns()) is not None and wake <= t_ns:
             if wake > clock.now_ns():
                 clock.jump_to(wake)
             out += self.tick()

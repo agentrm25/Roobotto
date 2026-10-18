@@ -230,6 +230,9 @@ class Timing(Model):
     hold_ms: PosInt = 500
     send_margin_ms: Ms = 5
     late_window_bars: PosFloat = 0.25
+    same_device_spacing_ms: PosInt = 10
+    """Gap between two sends to one device within one cue. Never shorter than the device's
+    rate limit, which wins when it is longer (ADR-017, I-15)."""
 
     @model_validator(mode="after")
     def _check_gestures(self) -> Self:
