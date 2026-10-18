@@ -1,0 +1,43 @@
+# Synthetic song for tests and demos. Not a real song; no private data.
+kind: song
+schema_version: 0
+id: synthetic_anthem
+title: Synthetic Anthem
+tempo: { nominal: 128, range: [118, 140] }
+meter: 4/4
+
+sections:
+  - { id: intro,   bars: 4 }
+  - { id: verse1,  bars: 8, vocal: true, advance_on: { snapshot: 1 } }
+  - { id: chorus1, bars: 8, vocal: true, advance_on: { snapshot: 2 } }
+  - { id: verse2,  bars: 8, vocal: true, model_as: verse1, advance_on: { snapshot: 1 } }
+  - { id: chorus2, bars: 8, vocal: true, model_as: chorus1, advance_on: { snapshot: 2 } }
+  - { id: solo,    bars: 8, extendable: { unit: 4, prob: 0.3 }, advance_on: { snapshot: 3 } }
+  - { id: chorus3, bars: 8, vocal: true, model_as: chorus1, repeat: { max: 2, prob: 0.2 }, advance_on: { snapshot: 2 } }
+  - { id: outro,   bars: 4, ends: true, advance_on: { snapshot: 4 } }
+
+graph:
+  - { from: solo,    to: solo,    prob: 0.3 }
+  - { from: chorus3, to: chorus3, prob: 0.2 }
+
+cues:
+  - id: chorus1_scene
+    at: { section: chorus1, bar: 1, beat: 1 }
+    class: standard
+    state: { mvp.scene: chorus, aum.layer: chorus_pad }
+    on_miss: { fire_late_within_beats: 1 }
+
+  - id: solo_build
+    at: { section: solo, bar: 1, beat: 1, offset_beats: -2 }
+    class: decorative
+    state: { mvp.scene: solo_build }
+    on_miss: skip
+
+  # Critical: never fired by tracker evidence alone (ADR-013). It needs the performer's
+  # mapped snapshot press or footswitch to authorize this specific occurrence.
+  - id: solo_guitar_lead
+    at: { section: solo, bar: 1, beat: 1 }
+    class: critical
+    state: { guitar.snapshot: lead }
+    requires: { posterior_min: 0.98, corroborate_by: [mapped_snapshot, footswitch], within_bars: 2 }
+    on_uncertain: ask

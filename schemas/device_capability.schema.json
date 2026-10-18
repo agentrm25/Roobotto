@@ -1,0 +1,323 @@
+{
+  "$defs": {
+    "Command": {
+      "additionalProperties": false,
+      "properties": {
+        "channel": {
+          "maximum": 16,
+          "minimum": 1,
+          "title": "Channel",
+          "type": "integer"
+        },
+        "evidence": {
+          "$ref": "#/$defs/Evidence"
+        },
+        "latency_ms": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Latency Ms"
+        },
+        "min_interval_ms": {
+          "minimum": 1,
+          "title": "Min Interval Ms",
+          "type": "integer"
+        },
+        "port": {
+          "pattern": "^[a-z][a-z0-9_]{0,63}$",
+          "title": "Port",
+          "type": "string"
+        },
+        "status": {
+          "enum": [
+            "unknown",
+            "documented",
+            "bench_verified"
+          ],
+          "title": "Status",
+          "type": "string"
+        },
+        "type": {
+          "enum": [
+            "state",
+            "one_shot"
+          ],
+          "title": "Type",
+          "type": "string"
+        },
+        "values": {
+          "minProperties": 1,
+          "patternProperties": {
+            "^[a-z][a-z0-9_]{0,63}$": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/WireMessage"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          },
+          "title": "Values",
+          "type": "object"
+        }
+      },
+      "required": [
+        "type",
+        "port",
+        "channel",
+        "values",
+        "status",
+        "min_interval_ms"
+      ],
+      "title": "Command",
+      "type": "object"
+    },
+    "Evidence": {
+      "additionalProperties": false,
+      "properties": {
+        "bench_log": {
+          "anyOf": [
+            {
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Bench Log"
+        },
+        "source": {
+          "anyOf": [
+            {
+              "pattern": "^E-\\d{2,}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Source"
+        }
+      },
+      "title": "Evidence",
+      "type": "object"
+    },
+    "Listen": {
+      "additionalProperties": false,
+      "description": "A port/channel on which a device may respond to what Roobotto sends.",
+      "properties": {
+        "behavior": {
+          "enum": [
+            "intended",
+            "ignores",
+            "acts",
+            "unknown"
+          ],
+          "title": "Behavior",
+          "type": "string"
+        },
+        "channel": {
+          "maximum": 16,
+          "minimum": 1,
+          "title": "Channel",
+          "type": "integer"
+        },
+        "port": {
+          "pattern": "^[a-z][a-z0-9_]{0,63}$",
+          "title": "Port",
+          "type": "string"
+        }
+      },
+      "required": [
+        "port",
+        "channel",
+        "behavior"
+      ],
+      "title": "Listen",
+      "type": "object"
+    },
+    "Report": {
+      "additionalProperties": false,
+      "description": "A message a device sends to Roobotto, and what it means (ADR-015, plan Section 4).\n\n``snapshot``: a controller whose values report the active snapshot. ``values`` lists the data\nvalue reported for snapshot 1, 2, 3 and so on, in order. ``preset``: a Program Change sent\nwhen the device changes preset (song selection, H-2).",
+      "properties": {
+        "channel": {
+          "maximum": 16,
+          "minimum": 1,
+          "title": "Channel",
+          "type": "integer"
+        },
+        "evidence": {
+          "$ref": "#/$defs/Evidence"
+        },
+        "kind": {
+          "enum": [
+            "control_change",
+            "program_change"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "meaning": {
+          "enum": [
+            "snapshot",
+            "preset"
+          ],
+          "title": "Meaning",
+          "type": "string"
+        },
+        "number": {
+          "anyOf": [
+            {
+              "maximum": 127,
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Number"
+        },
+        "source": {
+          "pattern": "^[a-z][a-z0-9_]{0,63}$",
+          "title": "Source",
+          "type": "string"
+        },
+        "status": {
+          "enum": [
+            "unknown",
+            "documented",
+            "bench_verified"
+          ],
+          "title": "Status",
+          "type": "string"
+        },
+        "values": {
+          "items": {
+            "maximum": 127,
+            "minimum": 0,
+            "type": "integer"
+          },
+          "title": "Values",
+          "type": "array"
+        }
+      },
+      "required": [
+        "meaning",
+        "source",
+        "channel",
+        "kind",
+        "status"
+      ],
+      "title": "Report",
+      "type": "object"
+    },
+    "WireMessage": {
+      "additionalProperties": false,
+      "properties": {
+        "data1": {
+          "maximum": 127,
+          "minimum": 0,
+          "title": "Data1",
+          "type": "integer"
+        },
+        "data2": {
+          "anyOf": [
+            {
+              "maximum": 127,
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Data2"
+        },
+        "kind": {
+          "enum": [
+            "note_on",
+            "note_off",
+            "control_change",
+            "program_change"
+          ],
+          "title": "Kind",
+          "type": "string"
+        }
+      },
+      "required": [
+        "kind",
+        "data1"
+      ],
+      "title": "WireMessage",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "commands": {
+      "patternProperties": {
+        "^[a-z][a-z0-9_]{0,63}$": {
+          "$ref": "#/$defs/Command"
+        }
+      },
+      "title": "Commands",
+      "type": "object"
+    },
+    "id": {
+      "pattern": "^[a-z][a-z0-9_]{0,63}$",
+      "title": "Id",
+      "type": "string"
+    },
+    "kind": {
+      "pattern": "^[a-z][a-z0-9_]{0,63}$",
+      "title": "Kind",
+      "type": "string"
+    },
+    "owner": {
+      "enum": [
+        "roobotto",
+        "performer"
+      ],
+      "title": "Owner",
+      "type": "string"
+    },
+    "receives": {
+      "items": {
+        "$ref": "#/$defs/Listen"
+      },
+      "title": "Receives",
+      "type": "array"
+    },
+    "reports": {
+      "patternProperties": {
+        "^[a-z][a-z0-9_]{0,63}$": {
+          "$ref": "#/$defs/Report"
+        }
+      },
+      "title": "Reports",
+      "type": "object"
+    }
+  },
+  "required": [
+    "id",
+    "kind",
+    "owner"
+  ],
+  "title": "DeviceCapability",
+  "type": "object"
+}

@@ -1,0 +1,92 @@
+# Rig template. Mock profile only: nothing here can reach hardware, and no mapping is enabled.
+# Every wire message is null and every command is `unknown` until Randy verifies it on the bench
+# (docs/hardware-verification.md). Separate mock ports per device stand in for H4 per-port
+# filtering, so no device hears another's channel (bench test H-5 decides the real filters).
+kind: rig
+schema_version: 0
+id: rig_template
+profile: mock
+
+ports:
+  - { id: mock_out_mvp,    direction: out, transport: mock }
+  - { id: mock_out_aum,    direction: out, transport: mock }
+  - { id: mock_out_helix,  direction: out, transport: mock }
+  - { id: mock_in_helix,   direction: in,  transport: mock }
+  - { id: mock_in_switches, direction: in, transport: mock }
+
+devices:
+  - id: mvp
+    kind: mvp
+    owner: roobotto
+    receives:
+      - { port: mock_out_mvp, channel: 3, behavior: intended }
+    commands:
+      scene:
+        type: one_shot
+        port: mock_out_mvp
+        channel: 3
+        values: { chorus: null, solo_build: null }
+        status: unknown
+        min_interval_ms: 100
+
+  - id: aum
+    kind: aum
+    owner: roobotto
+    receives:
+      - { port: mock_out_aum, channel: 15, behavior: intended }
+    commands:
+      layer:
+        type: state
+        port: mock_out_aum
+        channel: 15
+        values: { chorus_pad: null }
+        status: unknown
+        min_interval_ms: 250
+
+  # Stage 2 only: the Helix is the performer's until a song opts in (plan Section 8).
+  - id: guitar
+    kind: helix
+    owner: roobotto
+    receives:
+      - { port: mock_out_helix, channel: 1, behavior: intended }
+    # What the Helix sends to Roobotto (ADR-015). CC69 values 0-7 for snapshots 1-8 and a Program
+    # Change on preset change are documented (E-01), but the channel is a placeholder, so both stay
+    # `unknown` until bench tests H-1 and H-2. Only a bench_verified report can authorize a GO.
+    reports:
+      snapshot:
+        meaning: snapshot
+        source: helix
+        channel: 1
+        kind: control_change
+        number: 69
+        values: [0, 1, 2, 3, 4, 5, 6, 7]
+        status: unknown
+      preset: { meaning: preset, source: helix, channel: 1, kind: program_change, status: unknown }
+    commands:
+      snapshot:
+        type: state
+        port: mock_out_helix
+        channel: 1
+        values: { lead: null }
+        status: unknown
+        min_interval_ms: 250
+
+inputs:
+  - id: helix
+    paths:
+      - { port: mock_in_helix, authoritative: true }
+  - id: footswitches
+    paths:
+      - { port: mock_in_switches, authoritative: true }
+
+# Placeholder numbers until bench test P-1 assigns real switches.
+switches:
+  - { id: go_switch,   port: mock_in_switches, channel: 16, kind: note, number: 60 }
+  - { id: back_switch, port: mock_in_switches, channel: 16, kind: note, number: 61 }
+  - { id: stop_switch, port: mock_in_switches, channel: 16, kind: note, number: 62 }
+
+controls:
+  - { switch: go_switch,   gesture: press, action: go }
+  - { switch: back_switch, gesture: tap,   action: back }
+  - { switch: back_switch, gesture: hold,  action: manual }
+  - { switch: stop_switch, gesture: press, action: stop }

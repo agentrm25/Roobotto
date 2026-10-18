@@ -1,0 +1,235 @@
+{
+  "$defs": {
+    "Beat": {
+      "additionalProperties": false,
+      "properties": {
+        "phase": {
+          "exclusiveMaximum": 1,
+          "minimum": 0,
+          "title": "Phase",
+          "type": "number"
+        },
+        "tempo_bpm": {
+          "exclusiveMinimum": 0,
+          "title": "Tempo Bpm",
+          "type": "number"
+        },
+        "tempo_sd": {
+          "minimum": 0,
+          "title": "Tempo Sd",
+          "type": "number"
+        }
+      },
+      "required": [
+        "phase",
+        "tempo_bpm",
+        "tempo_sd"
+      ],
+      "title": "Beat",
+      "type": "object"
+    },
+    "Boundary": {
+      "additionalProperties": false,
+      "properties": {
+        "sd_ms": {
+          "minimum": 0,
+          "title": "Sd Ms",
+          "type": "number"
+        },
+        "successors": {
+          "patternProperties": {
+            "^[a-z][a-z0-9_]{0,63}$": {
+              "maximum": 1,
+              "minimum": 0,
+              "type": "number"
+            }
+          },
+          "title": "Successors",
+          "type": "object"
+        },
+        "t_ns": {
+          "minimum": 0,
+          "title": "T Ns",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "t_ns",
+        "sd_ms"
+      ],
+      "title": "Boundary",
+      "type": "object"
+    },
+    "Downbeat": {
+      "additionalProperties": false,
+      "properties": {
+        "sd_ms": {
+          "minimum": 0,
+          "title": "Sd Ms",
+          "type": "number"
+        },
+        "t_ns": {
+          "minimum": 0,
+          "title": "T Ns",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "t_ns",
+        "sd_ms"
+      ],
+      "title": "Downbeat",
+      "type": "object"
+    },
+    "Hypothesis": {
+      "additionalProperties": false,
+      "properties": {
+        "bar": {
+          "minimum": 1,
+          "title": "Bar",
+          "type": "integer"
+        },
+        "p": {
+          "maximum": 1,
+          "minimum": 0,
+          "title": "P",
+          "type": "number"
+        },
+        "section": {
+          "pattern": "^[a-z][a-z0-9_]{0,63}$",
+          "title": "Section",
+          "type": "string"
+        },
+        "visit": {
+          "minimum": 1,
+          "title": "Visit",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "section",
+        "visit",
+        "bar",
+        "p"
+      ],
+      "title": "Hypothesis",
+      "type": "object"
+    },
+    "SongRef": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "pattern": "^[a-z][a-z0-9_]{0,63}$",
+          "title": "Id",
+          "type": "string"
+        },
+        "p": {
+          "maximum": 1,
+          "minimum": 0,
+          "title": "P",
+          "type": "number"
+        }
+      },
+      "required": [
+        "id",
+        "p"
+      ],
+      "title": "SongRef",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Tracker -> engine. The engine drops lower ``seq`` and any earlier ``tracker_session``.",
+  "properties": {
+    "beat": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/Beat"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "boundary": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/Boundary"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "health": {
+      "patternProperties": {
+        "^[a-z][a-z0-9_]{0,63}$": {
+          "enum": [
+            "ok",
+            "degraded",
+            "lost"
+          ],
+          "type": "string"
+        }
+      },
+      "title": "Health",
+      "type": "object"
+    },
+    "hypotheses": {
+      "items": {
+        "$ref": "#/$defs/Hypothesis"
+      },
+      "title": "Hypotheses",
+      "type": "array"
+    },
+    "mode": {
+      "enum": [
+        "following",
+        "lost",
+        "manual"
+      ],
+      "title": "Mode",
+      "type": "string"
+    },
+    "next_downbeat": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/Downbeat"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "seq": {
+      "minimum": 0,
+      "title": "Seq",
+      "type": "integer"
+    },
+    "song": {
+      "$ref": "#/$defs/SongRef"
+    },
+    "t_ns": {
+      "minimum": 0,
+      "title": "T Ns",
+      "type": "integer"
+    },
+    "tracker_session": {
+      "pattern": "^[0-9a-f]{8,32}$",
+      "title": "Tracker Session",
+      "type": "string"
+    }
+  },
+  "required": [
+    "tracker_session",
+    "seq",
+    "t_ns",
+    "song",
+    "mode"
+  ],
+  "title": "MusicalState",
+  "type": "object"
+}

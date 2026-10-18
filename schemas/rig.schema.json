@@ -1,0 +1,611 @@
+{
+  "$defs": {
+    "Command": {
+      "additionalProperties": false,
+      "properties": {
+        "channel": {
+          "maximum": 16,
+          "minimum": 1,
+          "title": "Channel",
+          "type": "integer"
+        },
+        "evidence": {
+          "$ref": "#/$defs/Evidence"
+        },
+        "latency_ms": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Latency Ms"
+        },
+        "min_interval_ms": {
+          "minimum": 1,
+          "title": "Min Interval Ms",
+          "type": "integer"
+        },
+        "port": {
+          "pattern": "^[a-z][a-z0-9_]{0,63}$",
+          "title": "Port",
+          "type": "string"
+        },
+        "status": {
+          "enum": [
+            "unknown",
+            "documented",
+            "bench_verified"
+          ],
+          "title": "Status",
+          "type": "string"
+        },
+        "type": {
+          "enum": [
+            "state",
+            "one_shot"
+          ],
+          "title": "Type",
+          "type": "string"
+        },
+        "values": {
+          "minProperties": 1,
+          "patternProperties": {
+            "^[a-z][a-z0-9_]{0,63}$": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/WireMessage"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          },
+          "title": "Values",
+          "type": "object"
+        }
+      },
+      "required": [
+        "type",
+        "port",
+        "channel",
+        "values",
+        "status",
+        "min_interval_ms"
+      ],
+      "title": "Command",
+      "type": "object"
+    },
+    "Control": {
+      "additionalProperties": false,
+      "properties": {
+        "action": {
+          "enum": [
+            "go",
+            "back",
+            "manual",
+            "stop",
+            "extend"
+          ],
+          "title": "Action",
+          "type": "string"
+        },
+        "gesture": {
+          "enum": [
+            "press",
+            "tap",
+            "hold"
+          ],
+          "title": "Gesture",
+          "type": "string"
+        },
+        "switch": {
+          "pattern": "^[a-z][a-z0-9_]{0,63}$",
+          "title": "Switch",
+          "type": "string"
+        }
+      },
+      "required": [
+        "switch",
+        "gesture",
+        "action"
+      ],
+      "title": "Control",
+      "type": "object"
+    },
+    "DeviceCapability": {
+      "additionalProperties": false,
+      "properties": {
+        "commands": {
+          "patternProperties": {
+            "^[a-z][a-z0-9_]{0,63}$": {
+              "$ref": "#/$defs/Command"
+            }
+          },
+          "title": "Commands",
+          "type": "object"
+        },
+        "id": {
+          "pattern": "^[a-z][a-z0-9_]{0,63}$",
+          "title": "Id",
+          "type": "string"
+        },
+        "kind": {
+          "pattern": "^[a-z][a-z0-9_]{0,63}$",
+          "title": "Kind",
+          "type": "string"
+        },
+        "owner": {
+          "enum": [
+            "roobotto",
+            "performer"
+          ],
+          "title": "Owner",
+          "type": "string"
+        },
+        "receives": {
+          "items": {
+            "$ref": "#/$defs/Listen"
+          },
+          "title": "Receives",
+          "type": "array"
+        },
+        "reports": {
+          "patternProperties": {
+            "^[a-z][a-z0-9_]{0,63}$": {
+              "$ref": "#/$defs/Report"
+            }
+          },
+          "title": "Reports",
+          "type": "object"
+        }
+      },
+      "required": [
+        "id",
+        "kind",
+        "owner"
+      ],
+      "title": "DeviceCapability",
+      "type": "object"
+    },
+    "Evidence": {
+      "additionalProperties": false,
+      "properties": {
+        "bench_log": {
+          "anyOf": [
+            {
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Bench Log"
+        },
+        "source": {
+          "anyOf": [
+            {
+              "pattern": "^E-\\d{2,}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Source"
+        }
+      },
+      "title": "Evidence",
+      "type": "object"
+    },
+    "InputPath": {
+      "additionalProperties": false,
+      "properties": {
+        "authoritative": {
+          "title": "Authoritative",
+          "type": "boolean"
+        },
+        "port": {
+          "pattern": "^[a-z][a-z0-9_]{0,63}$",
+          "title": "Port",
+          "type": "string"
+        }
+      },
+      "required": [
+        "port",
+        "authoritative"
+      ],
+      "title": "InputPath",
+      "type": "object"
+    },
+    "InputSource": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "pattern": "^[a-z][a-z0-9_]{0,63}$",
+          "title": "Id",
+          "type": "string"
+        },
+        "paths": {
+          "items": {
+            "$ref": "#/$defs/InputPath"
+          },
+          "minItems": 1,
+          "title": "Paths",
+          "type": "array"
+        }
+      },
+      "required": [
+        "id",
+        "paths"
+      ],
+      "title": "InputSource",
+      "type": "object"
+    },
+    "Listen": {
+      "additionalProperties": false,
+      "description": "A port/channel on which a device may respond to what Roobotto sends.",
+      "properties": {
+        "behavior": {
+          "enum": [
+            "intended",
+            "ignores",
+            "acts",
+            "unknown"
+          ],
+          "title": "Behavior",
+          "type": "string"
+        },
+        "channel": {
+          "maximum": 16,
+          "minimum": 1,
+          "title": "Channel",
+          "type": "integer"
+        },
+        "port": {
+          "pattern": "^[a-z][a-z0-9_]{0,63}$",
+          "title": "Port",
+          "type": "string"
+        }
+      },
+      "required": [
+        "port",
+        "channel",
+        "behavior"
+      ],
+      "title": "Listen",
+      "type": "object"
+    },
+    "Port": {
+      "additionalProperties": false,
+      "description": "Direction is from Roobotto's point of view: ``out`` is where Roobotto sends.",
+      "properties": {
+        "direction": {
+          "enum": [
+            "in",
+            "out",
+            "both"
+          ],
+          "title": "Direction",
+          "type": "string"
+        },
+        "id": {
+          "pattern": "^[a-z][a-z0-9_]{0,63}$",
+          "title": "Id",
+          "type": "string"
+        },
+        "transport": {
+          "enum": [
+            "usb",
+            "din",
+            "virtual",
+            "mock"
+          ],
+          "title": "Transport",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "direction",
+        "transport"
+      ],
+      "title": "Port",
+      "type": "object"
+    },
+    "Report": {
+      "additionalProperties": false,
+      "description": "A message a device sends to Roobotto, and what it means (ADR-015, plan Section 4).\n\n``snapshot``: a controller whose values report the active snapshot. ``values`` lists the data\nvalue reported for snapshot 1, 2, 3 and so on, in order. ``preset``: a Program Change sent\nwhen the device changes preset (song selection, H-2).",
+      "properties": {
+        "channel": {
+          "maximum": 16,
+          "minimum": 1,
+          "title": "Channel",
+          "type": "integer"
+        },
+        "evidence": {
+          "$ref": "#/$defs/Evidence"
+        },
+        "kind": {
+          "enum": [
+            "control_change",
+            "program_change"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "meaning": {
+          "enum": [
+            "snapshot",
+            "preset"
+          ],
+          "title": "Meaning",
+          "type": "string"
+        },
+        "number": {
+          "anyOf": [
+            {
+              "maximum": 127,
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Number"
+        },
+        "source": {
+          "pattern": "^[a-z][a-z0-9_]{0,63}$",
+          "title": "Source",
+          "type": "string"
+        },
+        "status": {
+          "enum": [
+            "unknown",
+            "documented",
+            "bench_verified"
+          ],
+          "title": "Status",
+          "type": "string"
+        },
+        "values": {
+          "items": {
+            "maximum": 127,
+            "minimum": 0,
+            "type": "integer"
+          },
+          "title": "Values",
+          "type": "array"
+        }
+      },
+      "required": [
+        "meaning",
+        "source",
+        "channel",
+        "kind",
+        "status"
+      ],
+      "title": "Report",
+      "type": "object"
+    },
+    "Switch": {
+      "additionalProperties": false,
+      "properties": {
+        "channel": {
+          "maximum": 16,
+          "minimum": 1,
+          "title": "Channel",
+          "type": "integer"
+        },
+        "id": {
+          "pattern": "^[a-z][a-z0-9_]{0,63}$",
+          "title": "Id",
+          "type": "string"
+        },
+        "kind": {
+          "enum": [
+            "note",
+            "cc"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "number": {
+          "maximum": 127,
+          "minimum": 0,
+          "title": "Number",
+          "type": "integer"
+        },
+        "port": {
+          "pattern": "^[a-z][a-z0-9_]{0,63}$",
+          "title": "Port",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "port",
+        "channel",
+        "kind",
+        "number"
+      ],
+      "title": "Switch",
+      "type": "object"
+    },
+    "Timing": {
+      "additionalProperties": false,
+      "description": "Physical intervals, in milliseconds (ADR-005). Defaults are the plan's starting values.",
+      "properties": {
+        "echo_window_ms": {
+          "default": 250,
+          "minimum": 1,
+          "title": "Echo Window Ms",
+          "type": "integer"
+        },
+        "hold_ms": {
+          "default": 500,
+          "minimum": 1,
+          "title": "Hold Ms",
+          "type": "integer"
+        },
+        "init_window_ms": {
+          "default": 500,
+          "minimum": 1,
+          "title": "Init Window Ms",
+          "type": "integer"
+        },
+        "late_window_bars": {
+          "default": 0.25,
+          "exclusiveMinimum": 0,
+          "title": "Late Window Bars",
+          "type": "number"
+        },
+        "same_device_spacing_ms": {
+          "default": 10,
+          "minimum": 1,
+          "title": "Same Device Spacing Ms",
+          "type": "integer"
+        },
+        "send_margin_ms": {
+          "default": 5,
+          "minimum": 0,
+          "title": "Send Margin Ms",
+          "type": "number"
+        },
+        "tap_max_ms": {
+          "default": 500,
+          "minimum": 1,
+          "title": "Tap Max Ms",
+          "type": "integer"
+        }
+      },
+      "title": "Timing",
+      "type": "object"
+    },
+    "WireMessage": {
+      "additionalProperties": false,
+      "properties": {
+        "data1": {
+          "maximum": 127,
+          "minimum": 0,
+          "title": "Data1",
+          "type": "integer"
+        },
+        "data2": {
+          "anyOf": [
+            {
+              "maximum": 127,
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Data2"
+        },
+        "kind": {
+          "enum": [
+            "note_on",
+            "note_off",
+            "control_change",
+            "program_change"
+          ],
+          "title": "Kind",
+          "type": "string"
+        }
+      },
+      "required": [
+        "kind",
+        "data1"
+      ],
+      "title": "WireMessage",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "controls": {
+      "items": {
+        "$ref": "#/$defs/Control"
+      },
+      "title": "Controls",
+      "type": "array"
+    },
+    "devices": {
+      "items": {
+        "$ref": "#/$defs/DeviceCapability"
+      },
+      "title": "Devices",
+      "type": "array"
+    },
+    "id": {
+      "pattern": "^[a-z][a-z0-9_]{0,63}$",
+      "title": "Id",
+      "type": "string"
+    },
+    "inputs": {
+      "items": {
+        "$ref": "#/$defs/InputSource"
+      },
+      "title": "Inputs",
+      "type": "array"
+    },
+    "kind": {
+      "const": "rig",
+      "title": "Kind",
+      "type": "string"
+    },
+    "ports": {
+      "items": {
+        "$ref": "#/$defs/Port"
+      },
+      "minItems": 1,
+      "title": "Ports",
+      "type": "array"
+    },
+    "profile": {
+      "enum": [
+        "mock",
+        "physical"
+      ],
+      "title": "Profile",
+      "type": "string"
+    },
+    "schema_version": {
+      "const": 0,
+      "title": "Schema Version",
+      "type": "integer"
+    },
+    "switches": {
+      "items": {
+        "$ref": "#/$defs/Switch"
+      },
+      "title": "Switches",
+      "type": "array"
+    },
+    "timing": {
+      "$ref": "#/$defs/Timing"
+    }
+  },
+  "required": [
+    "kind",
+    "schema_version",
+    "id",
+    "profile",
+    "ports"
+  ],
+  "title": "Rig",
+  "type": "object"
+}

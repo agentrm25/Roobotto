@@ -1,0 +1,40 @@
+{
+  "additionalProperties": false,
+  "description": "Written to the fired ledger when a song instance starts, before any of its occurrences\nexist, so a restart never reuses the number (ADR-016).",
+  "properties": {
+    "performance": {
+      "pattern": "^[a-z][a-z0-9_]{0,63}$",
+      "title": "Performance",
+      "type": "string"
+    },
+    "record": {
+      "const": "song_instance",
+      "default": "song_instance",
+      "title": "Record",
+      "type": "string"
+    },
+    "song": {
+      "pattern": "^[a-z][a-z0-9_]{0,63}$",
+      "title": "Song",
+      "type": "string"
+    },
+    "song_instance": {
+      "minimum": 0,
+      "title": "Song Instance",
+      "type": "integer"
+    },
+    "started_ns": {
+      "minimum": 0,
+      "title": "Started Ns",
+      "type": "integer"
+    }
+  },
+  "required": [
+    "performance",
+    "song_instance",
+    "song",
+    "started_ns"
+  ],
+  "title": "SongInstanceRecord",
+  "type": "object"
+}

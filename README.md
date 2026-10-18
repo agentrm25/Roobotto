@@ -13,14 +13,35 @@ without requiring a click track or backing track.
 
 ## Status
 
-This repository contains the initial project scaffold only. Audio following,
-MIDI control, and hardware integrations are not implemented yet. The application
-stack and open-source license have not been selected.
+This repository contains the project foundation, config schemas, arrangement expansion and
+the control spine: a deterministic cue engine, provenance and authority rules, a fired ledger
+and an output supervisor (see [docs/safety-model.md](docs/safety-model.md)). Audio following
+and real MIDI ports are not implemented yet. Physical outputs are off by default and nothing
+here talks to real hardware.
+
+```
+uv run roobotto run --dry-run examples   # print the outputs a walkthrough would plan
+```
+
+The stack is Python 3.12 with uv (ADR-002). The code is licensed Apache-2.0 (ADR-001).
 
 ## Planning
 
 The [LLM Council report](Conceiving_the_Roobotto_Project-2026-10-16.html) captures
-the initial research and design proposals.
+the initial research and design proposals. The [implementation plan](docs/implementation-plan.md)
+turns them into tasks, and accepted decisions are in [docs/adr/](docs/adr/).
+
+## Development
+
+```
+uv sync
+uv run ruff check
+uv run ruff format --check
+uv run pyright
+uv run pytest
+```
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) and [AGENTS.md](AGENTS.md).
 
 ## Local files
 

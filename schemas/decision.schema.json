@@ -1,0 +1,99 @@
+{
+  "$defs": {
+    "OccurrenceId": {
+      "additionalProperties": false,
+      "description": "Cue identity (ADR-012, I-6). The scheduler generation is deliberately not a field.",
+      "properties": {
+        "cue_id": {
+          "pattern": "^[a-z][a-z0-9_]{0,63}$",
+          "title": "Cue Id",
+          "type": "string"
+        },
+        "performance": {
+          "pattern": "^[a-z][a-z0-9_]{0,63}$",
+          "title": "Performance",
+          "type": "string"
+        },
+        "section_visit": {
+          "minimum": 1,
+          "title": "Section Visit",
+          "type": "integer"
+        },
+        "song_instance": {
+          "minimum": 0,
+          "title": "Song Instance",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "performance",
+        "song_instance",
+        "section_visit",
+        "cue_id"
+      ],
+      "title": "OccurrenceId",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "evidence": {
+      "items": {
+        "minLength": 1,
+        "type": "string"
+      },
+      "title": "Evidence",
+      "type": "array"
+    },
+    "go_timing_class": {
+      "anyOf": [
+        {
+          "enum": [
+            "Q",
+            "D",
+            "L",
+            "F"
+          ],
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Go Timing Class"
+    },
+    "kind": {
+      "enum": [
+        "fire",
+        "hold",
+        "ask",
+        "abstain"
+      ],
+      "title": "Kind",
+      "type": "string"
+    },
+    "occurrence": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/OccurrenceId"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "reason": {
+      "minLength": 1,
+      "title": "Reason",
+      "type": "string"
+    }
+  },
+  "required": [
+    "kind",
+    "reason"
+  ],
+  "title": "Decision",
+  "type": "object"
+}

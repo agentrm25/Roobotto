@@ -1,0 +1,6 @@
+kind: setlist
+schema_version: 0
+id: synthetic_set
+title: Synthetic Set
+entries:
+  - { song: synthetic_anthem, program_change: 0 }

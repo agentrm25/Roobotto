@@ -1,0 +1,117 @@
+{
+  "additionalProperties": false,
+  "description": "One input observed by an adapter. Fail closed: provenance is required, never defaulted.",
+  "properties": {
+    "available_ns": {
+      "minimum": 0,
+      "title": "Available Ns",
+      "type": "integer"
+    },
+    "channel": {
+      "anyOf": [
+        {
+          "maximum": 16,
+          "minimum": 1,
+          "type": "integer"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Channel"
+    },
+    "data1": {
+      "anyOf": [
+        {
+          "maximum": 127,
+          "minimum": 0,
+          "type": "integer"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Data1"
+    },
+    "data2": {
+      "anyOf": [
+        {
+          "maximum": 127,
+          "minimum": 0,
+          "type": "integer"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Data2"
+    },
+    "id": {
+      "minLength": 1,
+      "title": "Id",
+      "type": "string"
+    },
+    "kind": {
+      "enum": [
+        "note_on",
+        "note_off",
+        "control_change",
+        "program_change"
+      ],
+      "title": "Kind",
+      "type": "string"
+    },
+    "mapped_action": {
+      "anyOf": [
+        {
+          "enum": [
+            "go",
+            "back",
+            "manual",
+            "stop",
+            "extend"
+          ],
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Mapped Action"
+    },
+    "path": {
+      "pattern": "^[a-z][a-z0-9_]{0,63}$",
+      "title": "Path",
+      "type": "string"
+    },
+    "provenance": {
+      "enum": [
+        "performer_intent",
+        "state_observation",
+        "output_echo",
+        "unknown"
+      ],
+      "title": "Provenance",
+      "type": "string"
+    },
+    "source": {
+      "pattern": "^[a-z][a-z0-9_]{0,63}$",
+      "title": "Source",
+      "type": "string"
+    }
+  },
+  "required": [
+    "id",
+    "available_ns",
+    "source",
+    "path",
+    "kind",
+    "provenance"
+  ],
+  "title": "Event",
+  "type": "object"
+}

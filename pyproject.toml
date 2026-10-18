@@ -1,0 +1,53 @@
+[project]
+name = "roobotto"
+version = "0.1.0"
+description = "Local, open-source stage manager for live bands"
+readme = "README.md"
+license = "Apache-2.0"
+license-files = ["LICENSE", "NOTICE"]
+requires-python = ">=3.12,<3.13"
+dependencies = [
+    "mido>=1.3.3",
+    "pydantic>=2.14.1",
+    "python-rtmidi>=1.5.8",
+    "pyyaml>=6.0.3",
+]
+
+[project.scripts]
+roobotto = "roobotto.cli:main"
+
+[dependency-groups]
+dev = [
+    "hypothesis>=6",
+    "pyright>=1.1",
+    "pytest>=9",
+    "ruff>=0.15",
+]
+
+[build-system]
+requires = ["uv_build>=0.11.7,<0.12.0"]
+build-backend = "uv_build"
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+src = ["src", "tests", "scripts"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP", "SIM", "RUF"]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = ["E501"]
+
+[tool.pyright]
+include = ["src", "tests", "scripts"]
+pythonVersion = "3.12"
+extraPaths = ["scripts", "tests"]
+typeCheckingMode = "strict"
+venvPath = "."
+venv = ".venv"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-ra --strict-markers"
+pythonpath = ["scripts", "tests"]
