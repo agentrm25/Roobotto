@@ -1,5 +1,5 @@
 """Runtime message schemas v0 (plan Section 4): Event, MusicalState, CueOccurrence,
-Decision, OutputAttempt and the fired-ledger record.
+Decision, OutputAttempt, and the fired-ledger records (fired occurrences and song instances).
 
 These are the contracts between adapters, tracker, engine, supervisor and recorder. They carry
 no behavior; the rules that can be checked on a single message are checked here.
@@ -222,6 +222,23 @@ class FiredLedgerRecord(Model):
     Keyed by occurrence only: the generation is not a field (I-6).
     """
 
+    record: Literal["fired"] = "fired"
     occurrence: OccurrenceId
     first_attempt_ns: Ns
     result: Literal["attempting", "attempted", "confirmed", "failed", "unknown"]
+
+
+class SongInstanceRecord(Model):
+    """Written to the fired ledger when a song instance starts, before any of its occurrences
+    exist, so a restart never reuses the number (ADR-016)."""
+
+    record: Literal["song_instance"] = "song_instance"
+    performance: Id
+    song_instance: NonNegInt
+    song: Id
+    started_ns: Ns
+
+
+LedgerRecord = FiredLedgerRecord | SongInstanceRecord
+"""One line of the fired ledger file. ``record`` tells them apart; older lines without it are
+fired records."""

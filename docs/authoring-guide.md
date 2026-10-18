@@ -25,7 +25,10 @@ See [examples/songs/synthetic_anthem.yaml](../examples/songs/synthetic_anthem.ya
 - **`advance_on: {snapshot: N}`** means the Helix snapshot change (1–8) that advances the band
   *into* this section. Only these mapped changes count as performer intent (ADR-011). The
   first section cannot have one, and two sections that can follow the same section cannot
-  share a snapshot.
+  share a snapshot. The rig must have exactly one device with a `snapshot` report that lists
+  snapshot N, and on real hardware that report must be `bench_verified` before a snapshot can
+  count as a GO (ADR-015). A snapshot GO never sends that device's own cues: the player has
+  already changed it.
 - **Cues** have a unique `id`, a position (`section`, `bar`, `beat`, optional `offset_beats`,
   negative to anticipate), a `class`, and `state`: intents such as `mvp.scene: chorus`, never
   bytes. `on_miss` is `skip`, `send_now` (default) or `{fire_late_within_beats: N}`.

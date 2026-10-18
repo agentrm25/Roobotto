@@ -46,6 +46,12 @@
     "occurrence": {
       "$ref": "#/$defs/OccurrenceId"
     },
+    "record": {
+      "const": "fired",
+      "default": "fired",
+      "title": "Record",
+      "type": "string"
+    },
     "result": {
       "enum": [
         "attempting",

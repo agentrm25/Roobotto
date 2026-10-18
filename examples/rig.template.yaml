@@ -49,6 +49,19 @@ devices:
     owner: roobotto
     receives:
       - { port: mock_out_helix, channel: 1, behavior: intended }
+    # What the Helix sends to Roobotto (ADR-015). CC69 values 0-7 for snapshots 1-8 and a Program
+    # Change on preset change are documented (E-01), but the channel is a placeholder, so both stay
+    # `unknown` until bench tests H-1 and H-2. Only a bench_verified report can authorize a GO.
+    reports:
+      snapshot:
+        meaning: snapshot
+        source: helix
+        channel: 1
+        kind: control_change
+        number: 69
+        values: [0, 1, 2, 3, 4, 5, 6, 7]
+        status: unknown
+      preset: { meaning: preset, source: helix, channel: 1, kind: program_change, status: unknown }
     commands:
       snapshot:
         type: state

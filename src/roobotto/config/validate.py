@@ -125,6 +125,42 @@ def _check_cues_against_rig(report: Report) -> None:
                     )
 
 
+def _check_advance_on_reports(report: Report) -> None:
+    """ADR-015: ``advance_on`` snapshots are read through the rig's one snapshot report."""
+    rigs = [c for c in report.configs.values() if isinstance(c, Rig)]
+    if len(rigs) != 1:
+        return
+    snapshot_reports = rigs[0].reports("snapshot")
+    for path, cfg in report.configs.items():
+        if not isinstance(cfg, Song):
+            continue
+        for index, sec in enumerate(cfg.sections):
+            if sec.advance_on is None:
+                continue
+            where = f"sections[{index}].advance_on"
+            if len(snapshot_reports) != 1:
+                found = "no device" if not snapshot_reports else "more than one device"
+                report.issues.append(
+                    Issue(
+                        str(path),
+                        where,
+                        f"advance_on needs exactly one device with a snapshot report in the rig; "
+                        f"{found} reports snapshots (ADR-015)",
+                    )
+                )
+                return
+            device_id, snap = snapshot_reports[0]
+            if sec.advance_on.snapshot > len(snap.values):
+                report.issues.append(
+                    Issue(
+                        str(path),
+                        where,
+                        f"snapshot {sec.advance_on.snapshot} is not one of the "
+                        f"{len(snap.values)} snapshots that '{device_id}' reports",
+                    )
+                )
+
+
 def validate_files(paths: Iterable[Path]) -> Report:
     report = Report()
     for path in expand(paths):
@@ -136,4 +172,5 @@ def validate_files(paths: Iterable[Path]) -> Report:
     _check_lyric_anchors(report)
     _check_setlists(report)
     _check_cues_against_rig(report)
+    _check_advance_on_reports(report)
     return report

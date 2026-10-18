@@ -1,1 +1,1 @@
-"""Cue logic: production equivalence now; decision gate, scheduler and supervisor later."""
+"""Cue logic: production equivalence, decision gate, scheduler, fired ledger and supervisor."""

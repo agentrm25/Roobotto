@@ -170,6 +170,34 @@ def _critical_without_performer(d: Docs) -> None:
     cue(d, "solo_guitar_lead")["requires"]["corroborate_by"] = ["drum_pattern"]
 
 
+def _report(**over: object) -> Mutate:
+    """Change the Helix snapshot report (ADR-015)."""
+
+    def apply(d: Docs) -> None:
+        device(d, "guitar")["reports"]["snapshot"].update(over)
+
+    return apply
+
+
+def _drop_snapshot_report(d: Docs) -> None:
+    del device(d, "guitar")["reports"]["snapshot"]
+
+
+def _second_snapshot_report(d: Docs) -> None:
+    report = dict(device(d, "guitar")["reports"]["snapshot"])
+    report["channel"] = 2
+    device(d, "mvp")["reports"] = {"snapshot": report}
+
+
+def _preset_with_values(d: Docs) -> None:
+    device(d, "guitar")["reports"]["preset"]["values"] = [1]
+
+
+def _duplicate_report_message(d: Docs) -> None:
+    report = dict(device(d, "guitar")["reports"]["snapshot"])
+    device(d, "aum")["reports"] = {"same": report}
+
+
 REJECTED: list[tuple[str, Mutate, str]] = [
     # Song structure
     (
@@ -381,6 +409,29 @@ REJECTED: list[tuple[str, Mutate, str]] = [
         "cue with an unknown value",
         _set(["song", "cues", 0, "state"], {"mvp.scene": "bridge"}),
         "not a value of mvp.scene",
+    ),
+    # Input capability records (ADR-015)
+    ("report from an unknown source", _report(source="keylab"), "unknown input source 'keylab'"),
+    ("snapshot report without a number", _report(number=None), "control_change with a number"),
+    ("snapshot report without values", _report(values=[]), "lists the value for each snapshot"),
+    (
+        "snapshot report with a repeated value",
+        _report(values=[0, 1, 1]),
+        "listed for two snapshots",
+    ),
+    ("preset report with values", _preset_with_values, "program_change with no number"),
+    (
+        "bench_verified report without a log",
+        _report(status="bench_verified"),
+        "needs evidence.bench_log",
+    ),
+    ("one message reported by two devices", _duplicate_report_message, "must mean one thing"),
+    ("advance_on with no snapshot report", _drop_snapshot_report, "no device reports snapshots"),
+    ("advance_on with two snapshot reports", _second_snapshot_report, "more than one device"),
+    (
+        "advance_on beyond the reported snapshots",
+        _report(values=[0, 1]),
+        "not one of the 2 snapshots",
     ),
 ]
 

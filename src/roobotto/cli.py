@@ -1,4 +1,4 @@
-"""Command-line entry point: ``roobotto validate-config`` and ``roobotto schemas export``."""
+"""Command-line entry point: ``validate-config``, ``schemas export`` and ``run --dry-run``."""
 
 import argparse
 import sys
@@ -7,6 +7,7 @@ from pathlib import Path
 
 from roobotto.config import schemas
 from roobotto.config.validate import validate_files
+from roobotto.engine.dry_run import DryRunError, dry_run
 
 
 def _validate_config(args: argparse.Namespace) -> int:
@@ -35,6 +36,29 @@ def _schemas_export(args: argparse.Namespace) -> int:
     return 0
 
 
+def _run(args: argparse.Namespace) -> int:
+    if not args.dry_run:
+        print(
+            "live runs are not available yet: this build has no MIDI port backend, and real "
+            "output needs a bench_verified profile plus explicit arming. Use --dry-run.",
+            file=sys.stderr,
+        )
+        return 2
+    try:
+        lines = dry_run(
+            [Path(p) for p in args.paths],
+            song=args.song,
+            performance=args.performance,
+            trace=Path(args.trace) if args.trace else None,
+        )
+    except DryRunError as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        return 1
+    for line in lines:
+        print(line)
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="roobotto")
     sub = parser.add_subparsers(dest="command", required=True)
@@ -51,6 +75,18 @@ def build_parser() -> argparse.ArgumentParser:
         "--check", action="store_true", help="fail if files are stale; write nothing"
     )
     export.set_defaults(func=_schemas_export)
+
+    run = sub.add_parser("run", help="run the cue engine (only --dry-run is available)")
+    run.add_argument("paths", nargs="+", help="rig, song and setlist files or directories")
+    run.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="print the planned outputs; everything goes to the mock adapter",
+    )
+    run.add_argument("--song", help="song id for the walkthrough (default: first in setlist)")
+    run.add_argument("--performance", default="dry_run", help="performance id (default: dry_run)")
+    run.add_argument("--trace", help="replay this consumed input trace instead of a walkthrough")
+    run.set_defaults(func=_run)
     return parser
 
 

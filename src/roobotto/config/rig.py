@@ -8,6 +8,9 @@ Safety rules enforced here:
   known-safe behavior.
 - I-17 / ADR-010: no switch mixes a forward action with a backward or safety action.
 - ADR-011: exactly one authoritative input path per source.
+- ADR-015: input is interpreted only through a device's report records. Reports may be of any
+  status (observing state is harmless), but only a ``bench_verified`` report, or one arriving on
+  a mock port, can carry performer intent; the engine enforces that.
 """
 
 from collections import defaultdict
@@ -68,6 +71,23 @@ class Evidence(Model):
     """Path under captures/ of the bench log for a bench_verified command."""
 
 
+Status = Literal["unknown", "documented", "bench_verified"]
+
+
+def evidence_errors(status: str, evidence: Evidence) -> list[str]:
+    """The evidence a status needs, shared by commands and reports (Section 10.2)."""
+    errors: list[str] = []
+    if status == "documented" and evidence.source is None:
+        errors.append("status 'documented' needs evidence.source (an evidence-register id)")
+    if status == "bench_verified":
+        log = evidence.bench_log
+        if log is None:
+            errors.append("status 'bench_verified' needs evidence.bench_log under captures/")
+        elif not log.startswith("captures/") or ".." in log.split("/") or log.endswith("/"):
+            errors.append(f"bench_log '{log}' must be a file path under captures/")
+    return errors
+
+
 class Command(Model):
     type: Literal["state", "one_shot"]
     """State is safe to resend by explicit resync only; one-shots fire at most once (I-15)."""
@@ -86,14 +106,43 @@ class Command(Model):
         errors: list[str] = []
         if self.status != "unknown" and any(m is None for m in self.values.values()):
             errors.append(f"status '{self.status}' needs a wire message for every value")
-        if self.status == "documented" and self.evidence.source is None:
-            errors.append("status 'documented' needs evidence.source (an evidence-register id)")
-        if self.status == "bench_verified":
-            log = self.evidence.bench_log
-            if log is None:
-                errors.append("status 'bench_verified' needs evidence.bench_log under captures/")
-            elif not log.startswith("captures/") or ".." in log.split("/") or log.endswith("/"):
-                errors.append(f"bench_log '{log}' must be a file path under captures/")
+        errors += evidence_errors(self.status, self.evidence)
+        raise_if(errors)
+        return self
+
+
+class Report(Model):
+    """A message a device sends to Roobotto, and what it means (ADR-015, plan Section 4).
+
+    ``snapshot``: a controller whose values report the active snapshot. ``values`` lists the data
+    value reported for snapshot 1, 2, 3 and so on, in order. ``preset``: a Program Change sent
+    when the device changes preset (song selection, H-2).
+    """
+
+    meaning: Literal["snapshot", "preset"]
+    source: Id
+    """The input source it arrives from. Only that source's authoritative path counts."""
+    channel: Channel
+    kind: Literal["control_change", "program_change"]
+    number: Midi7 | None = None
+    """The controller number, for ``control_change``."""
+    values: list[Midi7] = Field(default_factory=lambda: [])
+    status: Status
+    evidence: Evidence = Field(default_factory=Evidence)
+
+    @model_validator(mode="after")
+    def _check(self) -> Self:
+        errors: list[str] = []
+        if self.meaning == "snapshot":
+            if self.kind != "control_change" or self.number is None:
+                errors.append("a snapshot report is a control_change with a number")
+            if not self.values:
+                errors.append("a snapshot report lists the value for each snapshot in values")
+            for dup in sorted({v for v in self.values if self.values.count(v) > 1}):
+                errors.append(f"value {dup} is listed for two snapshots")
+        elif self.kind != "program_change" or self.number is not None or self.values:
+            errors.append("a preset report is a program_change with no number and no values")
+        errors += evidence_errors(self.status, self.evidence)
         raise_if(errors)
         return self
 
@@ -114,6 +163,8 @@ class DeviceCapability(Model):
     """Exactly one owner at a time (Section 5.2)."""
     receives: list[Listen] = Field(default_factory=lambda: [])
     commands: dict[Id, Command] = Field(default_factory=lambda: {})
+    reports: dict[Id, Report] = Field(default_factory=lambda: {})
+    """What the device sends to Roobotto (ADR-015)."""
 
     @model_validator(mode="after")
     def _check_receives(self) -> Self:
@@ -216,6 +267,35 @@ class Rig(Model):
 
     def device(self, device_id: str) -> DeviceCapability | None:
         return next((d for d in self.devices if d.id == device_id), None)
+
+    def reports(self, meaning: str | None = None) -> list[tuple[str, Report]]:
+        """``(device id, report)`` for every report, optionally of one meaning."""
+        return [
+            (d.id, r)
+            for d in self.devices
+            for r in d.reports.values()
+            if meaning is None or r.meaning == meaning
+        ]
+
+    @model_validator(mode="after")
+    def _check_reports(self) -> Self:
+        sources = {i.id for i in self.inputs}
+        seen: dict[tuple[str, int, str, int | None], str] = {}
+        errors: list[str] = []
+        for dev in self.devices:
+            for name, report in dev.reports.items():
+                label = f"report {dev.id}.{name}"
+                if report.source not in sources:
+                    errors.append(f"{label}: unknown input source '{report.source}'")
+                key = (report.source, report.channel, report.kind, report.number)
+                if key in seen:
+                    errors.append(
+                        f"{label}: the same message is already {seen[key]}; a message must "
+                        "mean one thing (ADR-015)"
+                    )
+                seen[key] = label
+        raise_if(errors)
+        return self
 
     @model_validator(mode="after")
     def _check_unique_ids(self) -> Self:

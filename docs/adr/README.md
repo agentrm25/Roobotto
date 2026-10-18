@@ -19,3 +19,5 @@ invariant needs a new ADR that supersedes it. Use [000-template.md](000-template
 | [012](012-cue-occurrence-identity.md) | Cue occurrence identity |
 | [013](013-critical-cue-authority.md) | Critical-cue authority |
 | [014](014-determinism-and-replay.md) | Determinism and replay |
+| [015](015-input-capability-records.md) | Input capability records |
+| [016](016-song-instances-in-the-fired-ledger.md) | Song instances in the fired ledger |

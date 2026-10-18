@@ -13,9 +13,15 @@ without requiring a click track or backing track.
 
 ## Status
 
-This repository contains the project foundation only. Audio following,
-MIDI control, and hardware integrations are not implemented yet. Physical outputs
-are off by default and nothing here talks to real hardware.
+This repository contains the project foundation, config schemas, arrangement expansion and
+the control spine: a deterministic cue engine, provenance and authority rules, a fired ledger
+and an output supervisor (see [docs/safety-model.md](docs/safety-model.md)). Audio following
+and real MIDI ports are not implemented yet. Physical outputs are off by default and nothing
+here talks to real hardware.
+
+```
+uv run roobotto run --dry-run examples   # print the outputs a walkthrough would plan
+```
 
 The stack is Python 3.12 with uv (ADR-002). The code is licensed Apache-2.0 (ADR-001).
 

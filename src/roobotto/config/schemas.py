@@ -15,6 +15,7 @@ from roobotto.messages import (
     FiredLedgerRecord,
     MusicalState,
     OutputAttempt,
+    SongInstanceRecord,
 )
 
 SCHEMAS: dict[str, type[BaseModel]] = {
@@ -29,6 +30,7 @@ SCHEMAS: dict[str, type[BaseModel]] = {
     "decision": Decision,
     "output_attempt": OutputAttempt,
     "fired_ledger_record": FiredLedgerRecord,
+    "song_instance_record": SongInstanceRecord,
 }
 
 

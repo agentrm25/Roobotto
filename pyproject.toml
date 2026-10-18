@@ -7,7 +7,9 @@ license = "Apache-2.0"
 license-files = ["LICENSE", "NOTICE"]
 requires-python = ">=3.12,<3.13"
 dependencies = [
+    "mido>=1.3.3",
     "pydantic>=2.14.1",
+    "python-rtmidi>=1.5.8",
     "pyyaml>=6.0.3",
 ]
 
@@ -40,7 +42,7 @@ select = ["E", "F", "I", "B", "UP", "SIM", "RUF"]
 [tool.pyright]
 include = ["src", "tests", "scripts"]
 pythonVersion = "3.12"
-extraPaths = ["scripts"]
+extraPaths = ["scripts", "tests"]
 typeCheckingMode = "strict"
 venvPath = "."
 venv = ".venv"
@@ -48,4 +50,4 @@ venv = ".venv"
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 addopts = "-ra --strict-markers"
-pythonpath = ["scripts"]
+pythonpath = ["scripts", "tests"]
