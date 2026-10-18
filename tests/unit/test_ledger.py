@@ -44,9 +44,8 @@ def test_torn_final_line_is_dropped(tmp_path: Path) -> None:
 def test_corrupt_middle_line_refuses_to_load(tmp_path: Path) -> None:
     path = tmp_path / "l.jsonl"
     FiredLedger(path).append(rec())
-    with path.open("a") as handle:
-        handle.write("garbage\n")
-    FiredLedger(path).append(rec(cue="b"))
+    good = path.read_text()
+    path.write_text(good + "garbage\n" + good.replace('"a"', '"b"'))
     with pytest.raises(LedgerCorruptError):
         FiredLedger(path)
 

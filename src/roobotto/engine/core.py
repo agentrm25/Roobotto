@@ -23,9 +23,13 @@ What the core does (T-04):
   table-driven GO policy arrive with T-05.
 - **STOP** cancels all pending work by starting a new generation and suspends tracker authority.
   **RESUME** is a deliberate HUD action after the operator confirms H4 preset B; it releases
-  nothing stale, treats device state as unknown, and sends nothing until the next GO.
-- **Tracker packets** are filtered by session and sequence (ADR-006). A new session or a stale
-  stream suspends tracker authority and drops to MANUAL; only the operator re-enables it (I-8).
+  nothing stale, treats device state as unknown, and holds an explicit "awaiting GO" state:
+  until the next authorized GO the tracker cannot move the engine, resync is refused and
+  nothing fires.
+- **Tracker packets** are filtered by session and sequence (ADR-006). A new session, a stale
+  stream, or a packet whose mode is not ``following`` suspends tracker authority and drops to
+  MANUAL; only the operator re-enables it (I-8). Only a fresh, following packet about the
+  selected song counts as evidence.
   In ASSISTED or AUTO, with authority, from M4, and only while the tracker reports the selected
   song, the tracker may relocalize within a visit (a new generation, no new occurrences) and
   enter a successor section as an unauthorized visit. A critical cue there is only proposed
@@ -47,7 +51,13 @@ from roobotto.cues.gate import DeviceView, GateInput, Mode, TimingClass, decide
 from roobotto.cues.scheduler import ScheduledCue, Scheduler
 from roobotto.cues.supervisor import Commit, Intent
 from roobotto.engine.inputs import EngineInput, MidiIn, OperatorIn, PortStatus, TrackerIn
-from roobotto.engine.provenance import Classified, ProvenanceContext, SentWire, classify
+from roobotto.engine.provenance import (
+    Classified,
+    ProvenanceContext,
+    SentWire,
+    classify,
+    preset_load_source,
+)
 from roobotto.engine.show import ShowConfig
 from roobotto.messages import Authorization, CueClass, MusicalState, OccurrenceId, OutputAttempt
 
@@ -127,6 +137,8 @@ class Engine:
         self.stopped = False
         self.armed = False
         self.preset_b_confirmed = False
+        self.awaiting_go = False
+        """Set by RESUME: nothing may be sent until the next authorized GO (I-18)."""
         self.tracker = TrackerView()
         self.song: Song | None = None
         self.song_instance: int | None = None
@@ -208,7 +220,9 @@ class Engine:
             wire = command.values.get(attempt.value)
             if wire is not None:
                 self._recent_sends.append(
-                    SentWire(self.now_ns, wire.kind, command.channel, wire.data1, wire.data2)
+                    SentWire(
+                        self.now_ns, device.id, wire.kind, command.channel, wire.data1, wire.data2
+                    )
                 )
             self.devices[device.id][name] = attempt.value
             if command.type == "state" and not commit.resync and commit.cue_class != "critical":
@@ -238,6 +252,18 @@ class Engine:
             and tr.rx_ns is not None
             and self.now_ns - tr.rx_ns <= self._stale_ns
             and self.now_ns - tr.state.t_ns <= self._stale_ns
+        )
+
+    def _tracker_usable(self) -> bool:
+        """Fresh, following, and about the selected song: the only tracker state that may count
+        as evidence for firing (I-8)."""
+        state = self.tracker.state
+        return (
+            self._tracker_fresh()
+            and state is not None
+            and state.mode == "following"
+            and self.song is not None
+            and state.song.id == self.song.id
         )
 
     def _suspend_tracker(self, out: list[Effect], why: str) -> None:
@@ -292,6 +318,9 @@ class Engine:
         )
         c = classify(msg, f"e{self._event_seq}", ctx)
         ev = c.event
+        preset_source = preset_load_source(self.rig, msg)
+        if preset_source is not None:
+            self._last_program_ns[preset_source] = self.now_ns
         self._note(
             out,
             "event",
@@ -311,7 +340,6 @@ class Engine:
         linked = self._linked.get(ev.source, frozenset())
         reporter = frozenset({c.device}) if c.device else frozenset[str]()
         if c.detail == "program_change":
-            self._last_program_ns[ev.source] = self.now_ns
             self._performer_changed(reporter, None, "preset change", out)
             if c.program is not None:
                 self._select_by_program(c.program, out)
@@ -568,6 +596,8 @@ class Engine:
     ) -> None:
         song = self.song
         assert song is not None
+        if via == "go":
+            self.awaiting_go = False
         self._cancel_all("left the section: pending work cancelled", out)
         number = self._visit_counts.get(section, 0) + 1
         self._visit_counts[section] = number
@@ -718,9 +748,7 @@ class Engine:
 
     def _posterior(self, item: ScheduledCue) -> float | None:
         state = self.tracker.state
-        if state is None or not self._tracker_fresh():
-            return None
-        if self.song is None or state.song.id != self.song.id:
+        if state is None or not self._tracker_usable():
             return None
         return min(1.0, sum(h.p for h in state.hypotheses if h.section == item.cue.at.section))
 
@@ -748,6 +776,16 @@ class Engine:
                     reason="expired: past the on_miss window, discarded (I-4)",
                 )
                 continue
+            if self.awaiting_go:
+                self.scheduler.finish(item, "cancelled")
+                self._note(
+                    out,
+                    "decision",
+                    kind="abstain",
+                    occurrence=occurrence,
+                    reason="nothing is sent after RESUME until the next authorized GO (I-18)",
+                )
+                continue
             decision = decide(
                 GateInput(
                     posterior=self._posterior(item),
@@ -760,7 +798,7 @@ class Engine:
                     mode=self.mode,
                     milestone=self.settings.milestone,
                     tracker_authority=self.tracker.authority,
-                    tracker_fresh=self._tracker_fresh(),
+                    tracker_fresh=self._tracker_usable(),
                     stopped=self.stopped,
                     timing_class=item.timing_class,
                 )
@@ -821,6 +859,7 @@ class Engine:
             return
         self.stopped = False
         self.preset_b_confirmed = False
+        self.awaiting_go = True
         generation = self.scheduler.bump()
         for copy in self.devices.values():
             for name in copy:
@@ -858,8 +897,13 @@ class Engine:
         elif action == "enable_tracker":
             if self.stopped:
                 self._refuse(out, action, "STOP is active")
-            elif not self._tracker_fresh():
-                self._refuse(out, action, "no fresh tracker stream to enable")
+            elif not self._tracker_usable():
+                self._refuse(
+                    out,
+                    action,
+                    "the tracker is not fresh, following and on the selected song; nothing to "
+                    "enable (I-8)",
+                )
             else:
                 self.tracker.authority = True
                 self._note(out, "tracker", event="authority_enabled", reason="operator re-enabled")
@@ -882,6 +926,9 @@ class Engine:
     def _resync(self, out: list[Effect]) -> None:
         if self.stopped:
             self._refuse(out, "resync", "STOP is active")
+            return
+        if self.awaiting_go:
+            self._refuse(out, "resync", "nothing is sent after RESUME until the next authorized GO")
             return
         if not self._last_state:
             self._refuse(out, "resync", "no retryable state has been sent since the last GO")
@@ -948,8 +995,11 @@ class Engine:
         tr.seq = state.seq
         tr.state = state
         tr.rx_ns = self.now_ns
+        if tr.authority and state.mode != "following":
+            self._suspend_tracker(out, f"the tracker reports '{state.mode}'")
         if (
             tr.authority
+            and not self.awaiting_go
             and self.mode != "manual"
             and self.settings.milestone >= 4
             and not self.stopped

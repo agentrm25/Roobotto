@@ -49,7 +49,9 @@ The supervisor also refuses a send when:
 - The occurrence is already in the fired ledger.
 - The device is missing or owned by the performer.
 - The port is disconnected. Nothing is queued or resent later.
-- The per-command `min_interval_ms` has not passed.
+- The device was sent to too recently. Rate limits are per device: two sends to one device,
+  through any of its commands and within one commit too, must be at least the larger of the
+  two commands' `min_interval_ms` apart (I-15).
 - Any device listening on the port and channel is not the intended target or declared `ignores`.
   The target itself must also list that port and channel as intended. This repeats the rig
   validator's check (I-13).
@@ -66,8 +68,12 @@ through the device's snapshot report (ADR-015), and counts only if that report i
 
 - anything on a non-authoritative path (a duplicate)
 - an adapter-marked automated recall
-- a message matching one Roobotto sent within the echo window
-- a snapshot within the initialization window after a Program Change
+- a message matching one Roobotto sent, within the echo window, to a device that reports through
+  the same input source. Echoes are scoped to the device that can produce them, so an unrelated
+  output can never swallow a footswitch press.
+- a snapshot within the initialization window after that source's preset change. Any preset
+  change starts the window, whatever its provenance: automated, echoed or arriving on a
+  duplicate path.
 - an unmapped snapshot, or a mapped one whose report is not `bench_verified` on a physical port
 - a port that is not exactly one source's input path
 - a message that matches no switch and no report record
@@ -84,12 +90,13 @@ These still update Roobotto's copy of device state where they say something abou
 
 **Tracker evidence alone never fires a critical cue** (ADR-013, I-14). The gate refuses it before
 it looks at mode, milestone, posterior or freshness. Decorative and standard cues may fire on
-tracker evidence only in ASSISTED or AUTO, with tracker authority enabled and fresh, from M4
-(decorative) or M5 (standard), and at or above the cue's posterior threshold.
+tracker evidence only in ASSISTED or AUTO, with tracker authority enabled, from M4 (decorative)
+or M5 (standard), and at or above the cue's posterior threshold. Only a fresh packet in
+`following` mode about the selected song counts as evidence.
 
 **Tracker authority** starts off. Only the operator turns it on. A new tracker session, a stale
-stream (no fresh packet for `tracker_stale_ms`), or STOP turns it off and drops the engine to
-MANUAL. A reconnect never turns it back on (I-8).
+stream (no fresh packet for `tracker_stale_ms`), a packet whose mode is not `following`, or STOP
+turns it off and drops the engine to MANUAL. A reconnect never turns it back on (I-8).
 
 ## Identity and the fired ledger
 
@@ -99,6 +106,11 @@ create a second occurrence (I-6, I-7).
 
 Before any send, the supervisor appends an `attempting` record to the ledger and fsyncs it. Any
 record blocks a second automatic send, including one whose outcome is unknown (I-5).
+
+Every record is one line ending in a newline, so a crash mid-write leaves a final line without
+one. On load, that tail is repaired on disk and fsynced before any new record is accepted. A
+complete record gets its newline back, and a torn fragment is cut off. A malformed line that does
+end in a newline is corruption, and the run refuses to start.
 
 Explicit operator resync may resend retryable state, but never a one-shot and never a critical
 cue. Nothing is resent automatically after a restart or reconnect.
@@ -121,7 +133,8 @@ RESUME needs an active STOP and an operator confirmation that the H4 is on prese
 - starts a new generation
 - marks every device's state unknown
 - releases nothing that was pending
-- sends nothing until the next authorized GO (I-18)
+- holds an explicit "awaiting GO" state until the next authorized GO: the tracker cannot move
+  the engine, resync is refused and nothing fires (I-18)
 
 ## Where it is tested
 
@@ -145,6 +158,10 @@ I-17 (gestures) lands with T-05.
 - **Unverified input reports.** The template's Helix reports are `unknown` until H-1 and H-2, so
   on real hardware Helix snapshots are tracker evidence only, never a GO (E-25).
 - **Rate limits across restarts.** The supervisor's rate-limit memory does not survive a restart.
+- **Two commands to one device in one cue.** Per-device rate limits refuse the second intent,
+  and the ledger then closes the occurrence, so that intent is lost. No song does this today.
+  Validation could reject such cues, or the supervisor could space them out; either is a
+  contract decision for the owner.
 - **Not yet built.** Tap and hold gestures (BACK, MANUAL), the class L late window and the
   table-driven GO policy come with T-05. EXTEND and tracker-detected repeats come with M4.
 - **Not tested on hardware.** No command is bench-verified, so nothing has reached hardware.

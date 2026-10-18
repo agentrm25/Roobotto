@@ -7,7 +7,9 @@ that matches wins:
 2. Any path but the source's authoritative one: a **duplicate**, kept as a state observation
    only. One action arriving on two paths therefore advances once.
 3. An adapter-marked automated recall (Showcase, Command Center): **state observation**.
-4. A message matching one Roobotto sent within the echo window: **output echo**.
+4. A message matching one Roobotto sent within the echo window to a device that reports
+   through this source: **output echo**. Echoes are scoped to the device that can produce them,
+   so an unrelated output can never swallow a footswitch press.
 5. A declared switch: **performer intent**. A press edge maps to the switch's press-gesture
    action (GO, STOP, EXTEND). Tap and hold gestures (BACK, MANUAL) are recognized by T-05; until
    then those edges carry no action.
@@ -54,6 +56,7 @@ class SentWire:
     """A message Roobotto sent, remembered for the echo window."""
 
     t_ns: int
+    device: str
     kind: str
     channel: int
     data1: int
@@ -105,9 +108,11 @@ def _match_switch(rig: Rig, msg: MidiIn) -> Switch | None:
     return None
 
 
-def _is_echo(msg: MidiIn, ctx: ProvenanceContext) -> bool:
+def _is_echo(msg: MidiIn, source: str, ctx: ProvenanceContext) -> bool:
+    """Only a device that reports through ``source`` can echo onto it (ADR-011, ADR-015)."""
+    echoing = {device for device, report in ctx.rig.reports() if report.source == source}
     for sent in ctx.recent_sends:
-        if ctx.now_ns - sent.t_ns > ctx.echo_window_ns:
+        if sent.device not in echoing or ctx.now_ns - sent.t_ns > ctx.echo_window_ns:
             continue
         if (sent.kind, sent.channel, sent.data1, sent.data2) == (
             msg.kind,
@@ -117,6 +122,26 @@ def _is_echo(msg: MidiIn, ctx: ProvenanceContext) -> bool:
         ):
             return True
     return False
+
+
+def preset_load_source(rig: Rig, msg: MidiIn) -> str | None:
+    """The source whose preset report this message matches, on any of its paths.
+
+    A preset change starts that source's initialization window whatever its provenance:
+    automated, echoed or duplicated preset loads recall snapshots too, and those recalls must
+    never count as a GO. Suppression is independent of authority.
+    """
+    for src in rig.inputs:
+        if not any(p.port == msg.port for p in src.paths):
+            continue
+        for _, report in rig.reports("preset"):
+            if (
+                report.source == src.id
+                and report.channel == msg.channel
+                and report.kind == msg.kind
+            ):
+                return src.id
+    return None
 
 
 def classify(msg: MidiIn, event_id: str, ctx: ProvenanceContext) -> Classified:
@@ -178,7 +203,7 @@ def classify(msg: MidiIn, event_id: str, ctx: ProvenanceContext) -> Classified:
             "automated recall: state observation only (ADR-011)",
             source=src.id,
         )
-    if _is_echo(msg, ctx):
+    if _is_echo(msg, src.id, ctx):
         return make(
             "output_echo",
             "echo",

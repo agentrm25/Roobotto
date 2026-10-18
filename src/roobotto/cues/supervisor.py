@@ -11,7 +11,9 @@ Per intent (``device.command = value``):
 
 - The device must be in the rig and owned by Roobotto; the command and value must exist.
 - The port must be connected; a disconnected port drops the send, nothing is queued.
-- Per-device rate limits apply (I-15).
+- Per-device rate limits apply (I-15): two sends to one device, through any of its commands
+  and within one commit too, are at least the larger of the two commands' ``min_interval_ms``
+  apart.
 - Every device listening on the port and channel must be the intended recipient or declared
   ``ignores`` (I-13). The rig validator checks this too; the supervisor re-checks at runtime.
 - Routing: the MIDI adapter only for a physical port in a physical profile, with a
@@ -129,7 +131,8 @@ class Supervisor:
         self.midi = midi
         self.config_hash = config_hash
         self.disconnected: set[str] = set()
-        self._last_send: dict[str, int] = {}
+        self._last_send: dict[str, tuple[int, int]] = {}
+        """Device id -> (time of its last send, that command's min interval in ns)."""
         self._ports = {p.id: p for p in rig.ports}
         self._listeners: dict[tuple[str, int], list[tuple[str, str]]] = defaultdict(list)
         for dev in rig.devices:
@@ -155,7 +158,14 @@ class Supervisor:
             return "mock", "MIDI adapter disabled: mock only"
         return "midi", "armed and bench_verified"
 
-    def _check(self, intent: Intent, now_ns: int, armed: bool, resync: bool) -> _Planned | str:
+    def _check(
+        self,
+        intent: Intent,
+        now_ns: int,
+        armed: bool,
+        resync: bool,
+        recent: dict[str, tuple[int, int]],
+    ) -> _Planned | str:
         device = self.rig.device(intent.device)
         if device is None:
             return f"device '{intent.device}' is not in the rig"
@@ -173,9 +183,15 @@ class Supervisor:
             return f"unknown port '{command.port}'"
         if command.port in self.disconnected:
             return f"port '{command.port}' is disconnected; nothing is queued or resent later"
-        last = self._last_send.get(intent.key)
-        if last is not None and now_ns - last < command.min_interval_ms * NS_PER_MS:
-            return f"rate limit: {intent.key} min_interval_ms {command.min_interval_ms} (I-15)"
+        interval = command.min_interval_ms * NS_PER_MS
+        last = recent.get(intent.device)
+        if last is not None:
+            required = max(interval, last[1])
+            if now_ns - last[0] < required:
+                return (
+                    f"rate limit: device '{intent.device}' needs {required // NS_PER_MS} ms "
+                    "between sends (I-15)"
+                )
         listeners = self._listeners[(command.port, command.channel)]
         if (intent.device, "intended") not in listeners:
             return (
@@ -221,12 +237,14 @@ class Supervisor:
 
         refusals: list[Refusal] = []
         planned: list[_Planned] = []
+        recent = dict(self._last_send)
         for intent in commit.intents:
-            checked = self._check(intent, now_ns, armed, commit.resync)
+            checked = self._check(intent, now_ns, armed, commit.resync, recent)
             if isinstance(checked, str):
                 refusals.append(Refusal(now_ns, occurrence, intent.key, checked))
             else:
                 planned.append(checked)
+                recent[intent.device] = (now_ns, checked.command.min_interval_ms * NS_PER_MS)
         if not planned:
             return [], refusals
 
@@ -245,7 +263,7 @@ class Supervisor:
             )
             target = self.midi if p.adapter == "midi" else self.mock
             result: SendResult = target.send(p.port.id, data, f"{occurrence.key} {p.intent.key}")
-            self._last_send[p.intent.key] = now_ns
+            self._last_send[p.intent.device] = (now_ns, p.command.min_interval_ms * NS_PER_MS)
             attempts.append(
                 OutputAttempt(
                     occurrence=occurrence,

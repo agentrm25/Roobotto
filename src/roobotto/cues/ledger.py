@@ -8,9 +8,12 @@ the cue is lost rather than duplicated.
 The ledger also records each song instance as it starts (ADR-016). A restart continues song
 instances after the highest one recorded, so no occurrence id is ever reused, fired or not.
 
-A torn final line can only come from a crash during the write, which happens before the send
-or before the song instance is used, so it is dropped on load. A malformed line anywhere else
-stops the load: the ledger is not trusted and the run must not start.
+Each record is written as one line ending in a newline, so a crash mid-write leaves a final
+line with no newline. On load such a tail is repaired on disk, and fsynced, before any new
+record is accepted: a complete record just gets its newline back; a torn fragment is cut off.
+The torn write happened before its send or before its song instance was used, so dropping it
+loses nothing that happened. Any malformed newline-terminated line stops the load: the ledger
+is not trusted and the run must not start.
 """
 
 import json
@@ -44,20 +47,41 @@ class FiredLedger:
         return self._path
 
     def _load(self, path: Path) -> None:
-        lines = path.read_text(encoding="utf-8").split("\n")
+        data = path.read_bytes()
+        if data and not data.endswith(b"\n"):
+            data = self._repair_tail(path, data)
+        lines = data.decode("utf-8").split("\n")
         if lines and lines[-1] == "":
             lines.pop()
         for index, line in enumerate(lines):
             try:
                 record = _RECORD.validate_python(json.loads(line))
             except (json.JSONDecodeError, ValidationError) as exc:
-                if index == len(lines) - 1:
-                    self.dropped_torn_line = True
-                    break
                 raise LedgerCorruptError(
                     f"{path}: line {index + 1} is not a ledger record"
                 ) from exc
             self._remember(record)
+
+    def _repair_tail(self, path: Path, data: bytes) -> bytes:
+        """Make the file end in a newline, durably, before anything else is appended."""
+        cut = data.rfind(b"\n") + 1
+        try:
+            _RECORD.validate_python(json.loads(data[cut:].decode("utf-8")))
+            complete = True
+        except (UnicodeDecodeError, json.JSONDecodeError, ValidationError):
+            complete = False
+        with path.open("r+b") as handle:
+            if complete:
+                handle.seek(0, os.SEEK_END)
+                handle.write(b"\n")
+            else:
+                handle.truncate(cut)
+            handle.flush()
+            os.fsync(handle.fileno())
+        if complete:
+            return data + b"\n"
+        self.dropped_torn_line = True
+        return data[:cut]
 
     def _remember(self, record: LedgerRecord) -> None:
         self._records.append(record)

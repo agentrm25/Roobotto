@@ -72,7 +72,8 @@ class SpineMachine(RuleBasedStateMachine):
         self.sent: Counter[tuple[str, str]] = Counter()
         self.overrides: dict[tuple[int, str, int], set[str]] = defaultdict(set)
         self.performer_devices_this_step: set[str] = set()
-        self.last_send: dict[str, int] = {}
+        self.last_send: dict[str, tuple[int, int]] = {}
+        self.last_preset_ns: int | None = None
         self.pre_restart_ledger: set[str] = set()
         self.stopped = False
         self.confirmed = False
@@ -152,15 +153,19 @@ class SpineMachine(RuleBasedStateMachine):
     def switch(self, action: str, press: bool, duplicate: bool) -> None:
         port = "mock_in_switches_h4" if duplicate else "mock_in_switches"
         self._midi(port, "note_on", 16, SWITCH_NOTE[action], 127 if press else 0)
+        if action == "stop" and press and not duplicate and not self.w.spine.engine.stopped:
+            self.violations["I-18"].append("a STOP press on the authoritative path did not stop")
 
     @rule(value=st.integers(0, 9), duplicate=st.booleans(), automated=st.booleans())
     def snapshot(self, value: int, duplicate: bool, automated: bool) -> None:
         port = "mock_in_helix_h4" if duplicate else "mock_in_helix"
         self._midi(port, "control_change", 1, 69, value, automated)
 
-    @rule(program=st.integers(0, 3))
-    def preset_change(self, program: int) -> None:
-        self._midi("mock_in_helix", "program_change", 1, program, None)
+    @rule(program=st.integers(0, 3), automated=st.booleans(), duplicate=st.booleans())
+    def preset_change(self, program: int, automated: bool, duplicate: bool) -> None:
+        port = "mock_in_helix_h4" if duplicate else "mock_in_helix"
+        self._midi(port, "program_change", 1, program, None, automated)
+        self.last_preset_ns = self.w.spine.engine.now_ns
 
     @rule(data=st.data())
     def echo(self, data: st.DataObject) -> None:
@@ -219,6 +224,18 @@ class SpineMachine(RuleBasedStateMachine):
     def confirmed_resume(self) -> None:
         self._do(lambda: self.w.op("confirm_preset_b"), op="confirm_preset_b")
         self._do(lambda: self.w.op("resume"), op="resume")
+
+    @rule(ahead=st.booleans())
+    def stop_resume_then_tracker(self, ahead: bool) -> None:
+        """STOP, RESUME, re-enable the tracker, then let it report the next section."""
+        self.switch("stop", True, False)
+        self.confirmed_resume()
+        self._do(lambda: self.w.op("set_mode", "assisted"), op="set_mode")
+        self.tracker_follows(False, 1, 1500)
+        self._do(lambda: self.w.op("enable_tracker"), op="enable_tracker")
+        for _ in range(3):
+            self.tracker_follows(ahead, 1, 1900)
+            self.advance(30)
 
     @rule()
     def arm(self) -> None:
@@ -306,6 +323,7 @@ class SpineMachine(RuleBasedStateMachine):
         self.world = self.w.restart()
         self.segment += 1
         self.last_send.clear()
+        self.last_preset_ns = None
         self.stopped = False
         self.awaiting_go = False
         self.confirmed = False
@@ -347,6 +365,15 @@ class SpineMachine(RuleBasedStateMachine):
                 if r["provenance"] != "performer_intent" and r["mapped_action"] is not None:
                     self.violations["I-16"].append(
                         f"non-performer event {r['id']} maps to an action"
+                    )
+                window = self.w.show.rig.timing.init_window_ms * MS
+                if (
+                    r["detail"] == "snapshot_mapped"
+                    and self.last_preset_ns is not None
+                    and r["t_ns"] - self.last_preset_ns <= window
+                ):
+                    self.violations["I-16"].append(
+                        f"snapshot {r['id']} inside a preset-load window authorized a GO"
                     )
             elif kind == "planned":
                 key = occ_key(r)
@@ -464,12 +491,11 @@ class SpineMachine(RuleBasedStateMachine):
                     self.violations["I-13"].append(f"{command_key} reaches {other.id}")
         if commit["class"] == "critical" and commit["authorized_by"] is None:
             self.violations["I-14"].append(f"critical {key} sent without authorization")
-        last = self.last_send.get(command_key)
-        if last is not None and t - last < command.min_interval_ms * MS:
-            self.violations["I-15"].append(
-                f"{command_key} faster than {command.min_interval_ms} ms"
-            )
-        self.last_send[command_key] = t
+        interval = command.min_interval_ms * MS
+        last = self.last_send.get(device_id)
+        if last is not None and t - last[0] < max(interval, last[1]):
+            self.violations["I-15"].append(f"device {device_id} sent to faster than its limit")
+        self.last_send[device_id] = (t, interval)
         if (
             not r["reason"]
             or not r["config_hash"]
@@ -528,6 +554,10 @@ class SpineMachine(RuleBasedStateMachine):
             assert not engine.tracker.authority
         if engine.tracker.authority:
             assert self.step_op == "enable_tracker" or engine._tracker_fresh()  # pyright: ignore[reportPrivateUsage]
+            state = engine.tracker.state
+            assert state is not None and state.mode == "following", (
+                "I-8: authority survived a non-following tracker state"
+            )
 
     @invariant()
     def i09_no_future_reads(self) -> None:
@@ -577,6 +607,8 @@ class SpineMachine(RuleBasedStateMachine):
         if engine.stopped:
             assert engine.scheduler.pending() == [] and engine.proposal is None
             assert not engine.tracker.authority
+        if engine.awaiting_go:
+            assert engine.scheduler.pending() == [], "I-18: work planned before the GO after RESUME"
 
 
 TestSpineInvariants = SpineMachine.TestCase  # pyright: ignore[reportUnknownMemberType, reportUnknownVariableType]
