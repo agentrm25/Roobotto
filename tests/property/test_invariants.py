@@ -4,7 +4,7 @@ A ``RuleBasedStateMachine`` drives the control spine with random presses on both
 snapshot changes (mapped, unmapped, automated), preset loads, echoes of Roobotto's own sends,
 tracker packets (old sessions, lost and reordered sequence numbers, stale and lost modes),
 operator actions, port disconnects and reconnects, clock jumps and restarts. After every step
-each invariant below is checked by its own named method. I-17 (gestures) lands with T-05.
+each invariant below is checked by its own named method, I-17 included (T-05).
 
 Occurrence ids (I-6) must be unique across restarts: song instances are persisted in the fired
 ledger (ADR-016). Rate limits (I-15) are checked within one process, because the supervisor's
@@ -15,16 +15,18 @@ from collections import Counter, defaultdict
 from collections.abc import Callable
 from typing import Any
 
-from hypothesis import HealthCheck, event, settings
+from hypothesis import HealthCheck, event, given, settings
 from hypothesis import strategies as st
 from hypothesis.stateful import RuleBasedStateMachine, initialize, invariant, rule
+from pydantic import ValidationError
 
 from roobotto.adapters.midi import MidiAdapter
 from roobotto.adapters.midi_wire import decode
+from roobotto.config.rig import Rig
 from roobotto.engine.inputs import MidiIn, TrackerIn
 from roobotto.engine.spine import Record, replay
 from roobotto.messages import FiredLedgerRecord, MusicalState, OccurrenceId
-from spine_support import MS, SWITCH_NOTE, RecordingBackend, World, show
+from spine_support import MS, SWITCH_NOTE, RecordingBackend, World, rig_doc, show
 
 SESSIONS = ["aaaaaaaa", "bbbbbbbb", "cccccccc"]
 SECTIONS = ["intro", "verse", "chorus", "solo", "outro"]
@@ -66,6 +68,10 @@ class SpineMachine(RuleBasedStateMachine):
         self.sessions_seen: list[str] = []
         self.seq: dict[str, int] = {}
         self.events: dict[tuple[int, str], Record] = {}
+        self.gestures: dict[tuple[int, str], str] = {}
+        self.performer_off = False
+        """Tracker authority is off because of the performer's own MANUAL hold (ADR-006)."""
+        self.current_section: str | None = None
         self.planned: set[str] = set()
         self.restart_instance_floor = 0
         self.commits: dict[str, Record] = {}
@@ -121,7 +127,15 @@ class SpineMachine(RuleBasedStateMachine):
         self.step_records = self.w.spine.records[start:]
         self.step_op = op
         self.step_new_session = new_session
-        if not authority_before and engine.tracker.authority and op != "enable_tracker":
+        performer_toggle = self.performer_off and any(
+            r["type"] == "manual" and r["event"] == "authority_on" for r in self.step_records
+        )
+        if (
+            not authority_before
+            and engine.tracker.authority
+            and op != "enable_tracker"
+            and not performer_toggle
+        ):
             self.violations["I-8"].append("tracker authority rose without the operator")
         self.just_restarted = False
         self._absorb(self.step_records)
@@ -155,6 +169,21 @@ class SpineMachine(RuleBasedStateMachine):
         self._midi(port, "note_on", 16, SWITCH_NOTE[action], 127 if press else 0)
         if action == "stop" and press and not duplicate and not self.w.spine.engine.stopped:
             self.violations["I-18"].append("a STOP press on the authoritative path did not stop")
+            self.violations["I-17"].append("STOP did not act on its press edge")
+
+    @rule(ms=st.integers(0, 499))
+    def tap_back(self, ms: int) -> None:
+        """A real tap on the BACK/MANUAL switch: BACK on release."""
+        self.switch("back", True, False)
+        self.advance(ms)
+        self.switch("back", False, False)
+
+    @rule(ms=st.integers(500, 1500))
+    def hold_back(self, ms: int) -> None:
+        """A real hold on the BACK/MANUAL switch: MANUAL when it reaches 500 ms."""
+        self.switch("back", True, False)
+        self.advance(ms)
+        self.switch("back", False, False)
 
     @rule(value=st.integers(0, 9), duplicate=st.booleans(), automated=st.booleans())
     def snapshot(self, value: int, duplicate: bool, automated: bool) -> None:
@@ -329,6 +358,8 @@ class SpineMachine(RuleBasedStateMachine):
         self.confirmed = False
         self.sessions_seen.clear()
         self.seq.clear()
+        self.current_section = None
+        self.performer_off = False
         self.step_records = []
         self.step_op = None
         self.just_restarted = True
@@ -360,6 +391,14 @@ class SpineMachine(RuleBasedStateMachine):
                 "tracker": f"tracker:{r.get('event')}",
             }
             event(labels.get(str(kind), str(kind)))
+            if kind == "manual" and r["event"] == "authority_off":
+                self.performer_off = True
+            elif kind == "stop" or (r.get("event"), kind) in (
+                ("authority_on", "manual"),
+                ("authority_suspended", "tracker"),
+                ("authority_enabled", "tracker"),
+            ):
+                self.performer_off = False
             if kind == "event":
                 self.events[(self.segment, r["id"])] = r
                 if r["provenance"] != "performer_intent" and r["mapped_action"] is not None:
@@ -386,15 +425,38 @@ class SpineMachine(RuleBasedStateMachine):
                 self.performer_devices_this_step.add(r["device"])
                 if r["visit"] is not None:
                     self.overrides[(r["song_instance"], r["section"], r["visit"])].add(r["device"])
-            elif kind == "visit" and r["via"] == "go":
-                self._check_authorization(r["authorized_by"], f"visit {r['section']}")
-                self.awaiting_go = False
+            elif kind == "gesture" and r["event"] == "recognized":
+                self.gestures[(self.segment, r["event_id"])] = r["action"]
+            elif kind == "visit":
+                if r["via"] == "go":
+                    self._check_authorization(r["authorized_by"], f"visit {r['section']}")
+                    if (self.segment, r["authorized_by"]) in self.gestures:
+                        self.violations["I-17"].append(f"a gesture issued a GO into {r['section']}")
+                    self.awaiting_go = False
+                elif r["via"] == "back":
+                    self._check_authorization(
+                        r["authorized_by"], f"BACK into {r['section']}", action="back"
+                    )
+                    if self.current_section is None or SECTIONS.index(
+                        r["section"]
+                    ) > SECTIONS.index(self.current_section):
+                        self.violations["I-17"].append(f"BACK moved forward into {r['section']}")
+                self.current_section = r["section"]
+            elif kind == "back" and r["event"] == "go_cancelled":
+                self.current_section = r["section"]
+            elif kind == "song" and r["event"] == "selected":
+                self.current_section = None
             elif kind == "proposal" and r["event"] == "authorized":
                 self._check_authorization(r["event_id"], "proposal")
             elif kind == "commit":
                 commit = r
                 if not r["resync"]:
                     self.commits[occ_key(r)] = r
+                auth_any = r["authorized_by"]
+                if auth_any is not None:
+                    self._check_authorization(
+                        auth_any["event_id"], f"commit {occ_key(r)}", action=auth_any["action"]
+                    )
                 if r["class"] == "critical":
                     auth = r["authorized_by"]
                     if auth is None:
@@ -403,7 +465,10 @@ class SpineMachine(RuleBasedStateMachine):
                         )
                     else:
                         self._check_authorization(
-                            auth["event_id"], f"critical {occ_key(r)}", invariant="I-14"
+                            auth["event_id"],
+                            f"critical {occ_key(r)}",
+                            invariant="I-14",
+                            action=auth["action"],
                         )
             elif kind == "stop":
                 self.stopped = True
@@ -431,9 +496,21 @@ class SpineMachine(RuleBasedStateMachine):
                     self.violations["I-4"].append(f"{occ_key(r)} deferred past its window")
 
     def _check_authorization(
-        self, event_id: str | None, what: str, invariant: str = "I-16"
+        self, event_id: str | None, what: str, invariant: str = "I-16", action: str = "go"
     ) -> None:
         event = self.events.get((self.segment, event_id or ""))
+        if action == "back":
+            ok = (
+                event is not None
+                and event["provenance"] == "performer_intent"
+                and event["detail"] == "switch_release"
+                and self.gestures.get((self.segment, event_id or "")) == "back"
+            )
+            if not ok:
+                self.violations[invariant].append(
+                    f"{what} authorized by a non-BACK event {event_id}"
+                )
+            return
         if (
             event is None
             or event["provenance"] != "performer_intent"
@@ -608,6 +685,10 @@ class SpineMachine(RuleBasedStateMachine):
         self._clean("I-16")
 
     @invariant()
+    def i17_gestures_never_go_forward_and_stop_acts_on_press(self) -> None:
+        self._clean("I-17")
+
+    @invariant()
     def i18_stop_cancels_everything_resume_is_deliberate(self) -> None:
         self._clean("I-18")
         engine = self.w.spine.engine
@@ -619,3 +700,38 @@ class SpineMachine(RuleBasedStateMachine):
 
 
 TestSpineInvariants = SpineMachine.TestCase  # pyright: ignore[reportUnknownMemberType, reportUnknownVariableType]
+
+
+ACTIONS = ["go", "back", "manual", "stop", "extend"]
+GESTURES = ["press", "tap", "hold"]
+
+
+@settings(max_examples=300, deadline=None)
+@given(
+    controls=st.lists(
+        st.tuples(
+            st.sampled_from(["go_sw", "back_sw", "stop_sw"]),
+            st.sampled_from(GESTURES),
+            st.sampled_from(ACTIONS),
+        ),
+        max_size=6,
+    )
+)
+def test_i17_no_valid_control_map_mixes_forward_with_backward_or_safety(
+    controls: list[tuple[str, str, str]],
+) -> None:
+    """I-17 at the config level: whatever control map validates, no switch carries a forward
+    action (GO, EXTEND) together with BACK, MANUAL or STOP, and GO and STOP act on the press."""
+    doc: dict[str, Any] = rig_doc()
+    doc["controls"] = [{"switch": s, "gesture": g, "action": a} for s, g, a in controls]
+    try:
+        rig = Rig.model_validate(doc)
+    except ValidationError:
+        return
+    by_switch: dict[str, set[str]] = defaultdict(set)
+    for ctl in rig.controls:
+        by_switch[ctl.switch].add(ctl.action)
+        if ctl.action in ("go", "stop", "extend"):
+            assert ctl.gesture == "press"
+    for actions in by_switch.values():
+        assert not ({"go", "extend"} & actions and {"back", "manual", "stop"} & actions)

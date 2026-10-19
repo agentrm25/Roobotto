@@ -158,6 +158,18 @@ class Scheduler:
         item.lifecycle = "committed"
         self.finish(item, "committed")
 
+    def reinstate(self, item: ScheduledCue) -> bool:
+        """Put back an item that was cancelled before it was ever committed (BACK undoing a
+        GO). Its identity is unchanged and it was never sent, so at-most-once holds."""
+        if self._done.get(item.key) != "cancelled" or item.key in self._pending:
+            return False
+        del self._done[item.key]
+        item.lifecycle = "scheduled"
+        item.generation = self.generation
+        item.last_decision = None
+        self._pending[item.key] = item
+        return True
+
     def mark(self, key: str, lifecycle: Lifecycle) -> None:
         if key in self._done:
             self._done[key] = lifecycle
