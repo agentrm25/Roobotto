@@ -16,11 +16,15 @@ What the core does (T-04):
   ``requires.corroborate_by`` lists the kind of action (footswitch or mapped snapshot) and the
   cue lies within ``requires.within_bars``. A GO made by a device's own snapshot press leaves
   that device's cues to the performer (Section 8, stage 1).
-- **Timing.** With a fresh, phase-locked tracker that predicts a downbeat within one bar, the
-  visit is anchored on that downbeat (class Q, or D once the send deadline has passed, which
-  then follows ``on_miss`` and is never deferred a bar). Otherwise the press is the downbeat and
-  entry cues go now (class F). Later cues are counted in beats from the anchor. Class L and the
-  table-driven GO policy arrive with T-05.
+- **GO timing** (Section 8, ``control/go_timing.py``): class F with no lock, L within the late
+  window after a downbeat, otherwise Q or D per entry cue against the next downbeat. D follows
+  ``on_miss`` and is never deferred a bar. Later cues are counted in beats from the anchor.
+- **Gestures** (Section 5.3, ``control/gestures.py``): a tap on the BACK/MANUAL switch is BACK,
+  recognized on release; a hold is MANUAL, recognized when it reaches ``hold_ms``. Neither can
+  issue a GO (I-17). BACK before anything from the last GO was sent cancels that GO and restores
+  the previous visit; after a send it re-enters the previous section as a new visit. MANUAL
+  (from M3) turns tracker authority off; a second hold turns it back on only if the performer's
+  own hold turned it off. Authority the system suspended needs the operator (ADR-006).
 - **STOP** cancels all pending work by starting a new generation and suspends tracker authority.
   **RESUME** is a deliberate HUD action after the operator confirms H4 preset B; it releases
   nothing stale, treats device state as unknown, and holds an explicit "awaiting GO" state:
@@ -40,14 +44,24 @@ What the core does (T-04):
   copy, cancels pending automation for that device and wins for the rest of the visit (I-3,
   I-12). Echoes and automated recalls update the copy only.
 
-Tap and hold gestures (BACK, MANUAL) and EXTEND have no effect yet; T-05 and M4 bring them.
+EXTEND has no effect yet; M4 brings it.
 """
 
 from dataclasses import dataclass, field
 from typing import Any, Literal
 
-from roobotto.config.song import Cue, FireLateWithin, Song
-from roobotto.cues.gate import DeviceView, GateInput, Mode, TimingClass, decide
+from roobotto.config.song import Cue, Song
+from roobotto.control.gestures import Gesture, Gestures
+from roobotto.control.go_timing import (
+    GoAnchor,
+    GoClass,
+    beat_ns_for,
+    entry_timing,
+    go_anchor,
+    go_class,
+    miss_window_end,
+)
+from roobotto.cues.gate import DeviceView, GateInput, Mode, decide
 from roobotto.cues.scheduler import ScheduledCue, Scheduler
 from roobotto.cues.supervisor import Commit, Intent
 from roobotto.engine.inputs import EngineInput, MidiIn, OperatorIn, PortStatus, TrackerIn
@@ -97,11 +111,27 @@ class Visit:
     beat_ns: int
     authorization: Authorization | None
     corroboration: str | None
-    timing_class: TimingClass | None
+    go_kind: Literal["F", "L", "next"] | None
+    """How a GO or BACK placed the first downbeat; ``None`` for a tracker-entered visit."""
+    go_ns: int | None
+    """When the GO or BACK that created the visit was authorized."""
     excluded: frozenset[str] = frozenset()
     """Devices whose cues stay with the performer in this visit (stage 1 snapshot GO)."""
     overridden: set[str] = field(default_factory=lambda: set[str]())
     """Devices the performer changed during this visit; they win until the next visit."""
+    committed: bool = False
+    """Something planned in this visit has been committed: a send is irreversible (5.3)."""
+
+
+@dataclass
+class LastGo:
+    """What BACK needs to undo the most recent GO (Section 5.3)."""
+
+    event_id: str
+    visit: Visit
+    previous: Visit | None
+    suspended: list[ScheduledCue]
+    """The previous visit's pending cues, cancelled when the GO entered."""
 
 
 @dataclass
@@ -154,6 +184,11 @@ class Engine:
         self._recent_sends: list[SentWire] = []
         self._last_state: dict[str, tuple[OccurrenceId, str, CueClass]] = {}
         self._last_ignored: str | None = None
+        self.gestures = Gestures(self.rig)
+        self._history: list[Visit] = []
+        self._last_go: LastGo | None = None
+        self._authority_off_by_performer = False
+        self._mode_before_manual: Mode = "manual"
         self._linked: dict[str, frozenset[str]] = {
             src.id: frozenset(d for d, r in self.rig.reports() if r.source == src.id)
             for src in self.rig.inputs
@@ -175,6 +210,8 @@ class Engine:
             self.now_ns = inp.t_ns
         self._started = True
         self._watchdog(out)
+        for gesture in self.gestures.due(self.now_ns):
+            self._on_gesture(gesture, out)
         if isinstance(inp, MidiIn):
             self._on_midi(inp, out)
         elif isinstance(inp, TrackerIn):
@@ -199,6 +236,9 @@ class Engine:
             )
         if self.tracker.authority and self.tracker.rx_ns is not None:
             times.append(self.tracker.rx_ns + self._stale_ns + 1)
+        hold = self.gestures.next_wakeup_ns()
+        if hold is not None:
+            times.append(hold)
         future = [t for t in times if t > self.now_ns]
         return min(future) if future else None
 
@@ -272,6 +312,7 @@ class Engine:
 
     def _suspend_tracker(self, out: list[Effect], why: str) -> None:
         self.tracker.authority = False
+        self._authority_off_by_performer = False
         self.mode = "manual"
         self._note(
             out,
@@ -286,11 +327,7 @@ class Engine:
             self._suspend_tracker(out, "stale tracker stream")
 
     def _tempo_beat_ns(self, song: Song, state: MusicalState | None) -> int:
-        tempo = song.tempo.nominal
-        if state is not None and state.beat is not None:
-            low, high = song.tempo.range
-            tempo = min(max(state.beat.tempo_bpm, low), high)
-        return round(NS_PER_MINUTE / tempo)
+        return beat_ns_for(song, state)
 
     # ---------------------------------------------------------------------------- MIDI
 
@@ -357,6 +394,14 @@ class Engine:
         elif c.detail in ("echo", "automated"):
             self._observe(linked, msg)
 
+        if (
+            ev.provenance == "performer_intent"
+            and ev.mapped_action is None
+            and c.switch is not None
+            and self.gestures.handles(c.switch)
+        ):
+            self._switch_edge(c, out)
+            return
         if ev.provenance != "performer_intent" or ev.mapped_action is None:
             return
         if ev.mapped_action == "go":
@@ -364,8 +409,42 @@ class Engine:
         elif ev.mapped_action == "stop":
             self._stop(out, f"STOP press '{ev.id}'")
         else:
-            later = "M4" if ev.mapped_action == "extend" else "T-05"
-            self._refuse(out, ev.mapped_action, f"no effect: arrives with {later}", ev.id)
+            self._refuse(out, ev.mapped_action, "no effect: EXTEND arrives with M4", ev.id)
+
+    # ------------------------------------------------------------------- gestures
+
+    def _switch_edge(self, c: Classified, out: list[Effect]) -> None:
+        """A raw edge of a tap/hold switch (Section 5.3)."""
+        ev = c.event
+        assert c.switch is not None
+        if c.detail == "switch_press":
+            note = self.gestures.press(c.switch, ev.available_ns, ev.id)
+            if note is not None:
+                self._note(out, "gesture", event="restarted", switch=c.switch, reason=note)
+            return
+        gesture, reason = self.gestures.release(c.switch, ev.available_ns, ev.id)
+        if gesture is None:
+            self._note(out, "gesture", event="none", switch=c.switch, reason=reason)
+            return
+        self._on_gesture(gesture, out)
+
+    def _on_gesture(self, g: Gesture, out: list[Effect]) -> None:
+        self._note(
+            out,
+            "gesture",
+            event="recognized",
+            action=g.action,
+            switch=g.switch,
+            event_id=g.event_id,
+            pressed_ns=g.pressed_ns,
+            held_dur_ns=g.at_ns - g.pressed_ns,
+        )
+        if g.action == "back":
+            self._back(g, out)
+        elif g.action == "manual":
+            self._manual(g, out)
+        else:
+            self._refuse(out, g.action, "not a tap or hold action", g.event_id)
 
     def _observe(self, devices: frozenset[str], msg: MidiIn | None) -> None:
         for device_id in sorted(devices):
@@ -448,6 +527,8 @@ class Engine:
         out.append(InstanceStart(self.settings.performance, self.song_instance, song.id))
         self.visit = None
         self._visit_counts = {}
+        self._history = []
+        self._last_go = None
         self.proposal = None
         self._note(
             out, "song", event="selected", song=song.id, instance=self.song_instance, via=via
@@ -502,17 +583,38 @@ class Engine:
             if corroboration == "mapped_snapshot" and c.device
             else frozenset[str]()
         )
-        anchor, beat_ns, timing_class = self._go_timing()
-        self._enter(
+        song = self.song
+        state = self.tracker.state if self._tracker_usable() else None
+        anchor = go_anchor(ev.available_ns, state, song, self.rig.timing.late_window_bars)
+        previous = self.visit
+        suspended = self._enter(
             target,
-            anchor_ns=anchor,
-            beat_ns=beat_ns,
-            timing_class=timing_class,
+            anchor=anchor,
             authorization=Authorization(event_id=ev.id, action="go"),
             corroboration=corroboration,
             excluded=excluded,
             via="go",
             out=out,
+        )
+        visit = self.visit
+        assert visit is not None
+        self._last_go = LastGo(ev.id, visit, previous, suspended)
+        entries = [
+            i.timing_class
+            for i in self.scheduler.pending()
+            if i.timing_class is not None and i.cue.at.section == visit.section
+        ]
+        self._note(
+            out,
+            "go",
+            event_id=ev.id,
+            press_ns=ev.available_ns,
+            timing_class=go_class(entries, anchor),
+            anchor_ns=anchor.anchor_ns,
+            section=visit.section,
+            visit=visit.number,
+            reason="GO record: press time and class; send times are in the output attempts "
+            "it authorized (Section 8)",
         )
 
     def _authorize_proposal(self, c: Classified, out: list[Effect]) -> bool:
@@ -559,23 +661,9 @@ class Engine:
         )
         return True
 
-    def _go_timing(self) -> tuple[int, int, TimingClass]:
-        song = self.song
-        assert song is not None
-        state = self.tracker.state if self._tracker_fresh() else None
-        beat_ns = self._tempo_beat_ns(song, state)
-        bar_ns = beat_ns * song.beats_per_bar
-        if (
-            state is not None
-            and state.mode == "following"
-            and state.next_downbeat is not None
-            and 0 <= state.next_downbeat.t_ns - self.now_ns <= bar_ns
-        ):
-            return state.next_downbeat.t_ns, beat_ns, "Q"
-        return self.now_ns, beat_ns, "F"
-
-    def _cancel_all(self, why: str, out: list[Effect]) -> None:
-        for item in self.scheduler.cancel_all():
+    def _cancel_all(self, why: str, out: list[Effect]) -> list[ScheduledCue]:
+        cancelled = self.scheduler.cancel_all()
+        for item in cancelled:
             self._note(
                 out,
                 "cancel",
@@ -584,27 +672,42 @@ class Engine:
                 generation=self.scheduler.generation,
                 reason=why,
             )
+        return cancelled
 
     def _enter(
         self,
         section: str,
         *,
-        anchor_ns: int,
-        beat_ns: int,
-        timing_class: TimingClass | None,
+        anchor: GoAnchor | None = None,
+        tracker_anchor: tuple[int, int] | None = None,
         authorization: Authorization | None,
         corroboration: str | None,
         excluded: frozenset[str],
-        via: Literal["go", "tracker"],
+        via: Literal["go", "tracker", "back"],
         out: list[Effect],
-    ) -> None:
+        remember: bool = True,
+    ) -> list[ScheduledCue]:
+        """Enter ``section`` as a new visit. Returns the pending cues it cancelled.
+
+        A GO or BACK passes its ``anchor``; the tracker passes ``(anchor_ns, beat_ns)``.
+        """
         song = self.song
         assert song is not None
         if via == "go":
             self.awaiting_go = False
-        self._cancel_all("left the section: pending work cancelled", out)
+        left = self._cancel_all("left the section: pending work cancelled", out)
+        if remember and self.visit is not None:
+            self._history = [*self._history[-31:], self.visit]
+        self._last_go = None
         number = self._visit_counts.get(section, 0) + 1
         self._visit_counts[section] = number
+        if anchor is not None:
+            anchor_ns, beat_ns = anchor.anchor_ns, anchor.beat_ns
+            go_kind, go_ns = anchor.kind, anchor.go_ns
+        else:
+            assert tracker_anchor is not None
+            anchor_ns, beat_ns = tracker_anchor
+            go_kind, go_ns = None, None
         self.visit = Visit(
             section,
             number,
@@ -612,7 +715,8 @@ class Engine:
             beat_ns,
             authorization,
             corroboration,
-            timing_class,
+            go_kind,
+            go_ns,
             excluded,
         )
         self.proposal = None
@@ -624,7 +728,7 @@ class Engine:
             visit=number,
             via=via,
             authorized_by=authorization.event_id if authorization else None,
-            timing_class=timing_class,
+            go_kind=go_kind,
             anchor_ns=anchor_ns,
             beat_dur_ns=beat_ns,
             generation=self.scheduler.generation,
@@ -632,6 +736,7 @@ class Engine:
         for cue in song.cues:
             if cue.at.section == section:
                 self._plan(cue, out)
+        return left
 
     # ------------------------------------------------------------------- scheduling
 
@@ -726,22 +831,21 @@ class Engine:
         lead = self._lead_ns(item.intents)
         due = visit.anchor_ns + round(beats * visit.beat_ns)
         send_at = due - lead
-        timing_class: TimingClass | None = None
-        if beats == 0 and visit.timing_class == "F":
-            timing_class = "F"
-            send_at = visit.anchor_ns
-            due = send_at + lead
-        elif beats == 0 and visit.timing_class == "Q":
-            timing_class = "Q" if self.now_ns <= send_at else "D"
-        miss = item.cue.on_miss
-        if isinstance(miss, FireLateWithin):
-            window_end = due + round(miss.fire_late_within_beats * visit.beat_ns)
-        elif miss == "send_now":
-            bars = self.rig.timing.late_window_bars
-            window_end = due + round(bars * song.beats_per_bar * visit.beat_ns)
-        else:
-            # skip: the latest send that still lands on time; the margin absorbs jitter.
-            window_end = send_at + self._margin_ns
+        timing_class: GoClass | None = None
+        if beats == 0 and visit.go_kind is not None and visit.go_ns is not None:
+            entry = entry_timing(
+                GoAnchor(visit.go_kind, visit.go_ns, visit.anchor_ns, visit.beat_ns), lead
+            )
+            timing_class, due, send_at = entry.timing_class, entry.due_ns, entry.send_at_ns
+        window_end = miss_window_end(
+            item.cue.on_miss,
+            due_ns=due,
+            send_at_ns=send_at,
+            beat_ns=visit.beat_ns,
+            beats_per_bar=song.beats_per_bar,
+            late_window_bars=self.rig.timing.late_window_bars,
+            margin_ns=self._margin_ns,
+        )
         self.scheduler.schedule(
             item,
             due_ns=due,
@@ -813,6 +917,14 @@ class Engine:
                 self._note(out, "decision", **decision.model_dump(mode="json"))
             if decision.kind == "fire":
                 self.scheduler.commit(item)
+                visit = self.visit
+                if (
+                    visit is not None
+                    and item.occurrence.song_instance == self.song_instance
+                    and item.occurrence.section_visit == visit.number
+                    and item.cue.at.section == visit.section
+                ):
+                    visit.committed = True
                 out.append(
                     Commit(
                         occurrence=item.occurrence,
@@ -838,6 +950,134 @@ class Engine:
             self._note(out, "proposal", event="withdrawn", key=self.proposal.key)
             self.proposal = None
 
+    # ---------------------------------------------------------------- BACK, MANUAL
+
+    def _previous_section(self) -> str | None:
+        song, visit = self.song, self.visit
+        assert song is not None and visit is not None
+        ids = [s.id for s in song.sections]
+        index = ids.index(visit.section)
+        return ids[index - 1] if index > 0 else None
+
+    def _back(self, g: Gesture, out: list[Effect]) -> None:
+        """BACK (Section 5.3). Never a GO: it only undoes one, or moves to an earlier section."""
+        if self.stopped:
+            self._refuse(out, "back", "STOP is active; RESUME first (I-18)", g.event_id)
+            return
+        if self.awaiting_go:
+            self._refuse(
+                out,
+                "back",
+                "after RESUME nothing is sent until the next authorized GO (I-18)",
+                g.event_id,
+            )
+            return
+        if self.song is None or self.visit is None:
+            self._refuse(out, "back", "no section to go back from", g.event_id)
+            return
+        last = self._last_go
+        if last is not None and last.visit is self.visit and not self.visit.committed:
+            self._cancel_all("BACK before the GO's send deadline: the GO is cancelled", out)
+            self.visit = last.previous
+            if self._history and self._history[-1] is last.previous:
+                self._history.pop()
+            self._last_go = None
+            self.proposal = None
+            reinstated = [
+                item.key
+                for item in last.suspended
+                if self.now_ns <= item.window_end_ns and self.scheduler.reinstate(item)
+            ]
+            self._note(
+                out,
+                "back",
+                event="go_cancelled",
+                event_id=g.event_id,
+                cancelled_go=last.event_id,
+                section=self.visit.section if self.visit else None,
+                visit=self.visit.number if self.visit else None,
+                reinstated=reinstated,
+                generation=self.scheduler.generation,
+                reason="nothing from the GO had been sent: it is cancelled with no output and the "
+                "previous visit continues",
+            )
+            return
+        target = self._history[-1].section if self._history else self._previous_section()
+        if target is None:
+            self._refuse(out, "back", "there is no earlier section to go back to", g.event_id)
+            return
+        if self._history:
+            self._history.pop()
+        state = self.tracker.state if self._tracker_usable() else None
+        anchor = GoAnchor("F", self.now_ns, self.now_ns, self._tempo_beat_ns(self.song, state))
+        self._enter(
+            target,
+            anchor=anchor,
+            authorization=Authorization(event_id=g.event_id, action="back"),
+            corroboration="footswitch",
+            excluded=frozenset(),
+            via="back",
+            out=out,
+            remember=False,
+        )
+        self._note(
+            out,
+            "back",
+            event="reentered",
+            event_id=g.event_id,
+            section=target,
+            reason="the GO's commands were already sent: BACK re-enters the previous section and "
+            "sends its entry state as new occurrences (Section 5.3)",
+        )
+
+    def _manual(self, g: Gesture, out: list[Effect]) -> None:
+        """MANUAL (Section 5.3): toggle tracker authority. Fires and cancels nothing."""
+        if self.settings.milestone < 3:
+            self._note(
+                out,
+                "manual",
+                event="no_effect",
+                event_id=g.event_id,
+                reason="MANUAL arrives with M3; logged with no effect (Section 5.3)",
+            )
+            return
+        tracker = self.tracker
+        if tracker.authority:
+            tracker.authority = False
+            self._authority_off_by_performer = True
+            self._mode_before_manual = self.mode
+            self.mode = "manual"
+            self._note(
+                out,
+                "manual",
+                event="authority_off",
+                event_id=g.event_id,
+                reason="performer hold: tracker authority off; nothing fired or cancelled",
+            )
+            return
+        if not self._authority_off_by_performer:
+            reason = (
+                "tracker authority was suspended by the system or never enabled; only the "
+                "operator re-enables it (ADR-006, I-8)"
+            )
+        elif self.stopped or self.awaiting_go:
+            reason = "STOP is active, or RESUME is awaiting its GO"
+        elif not self._tracker_usable():
+            reason = "the tracker is not fresh, following and on the selected song (I-8)"
+        else:
+            tracker.authority = True
+            self._authority_off_by_performer = False
+            self.mode = self._mode_before_manual
+            self._note(
+                out,
+                "manual",
+                event="authority_on",
+                event_id=g.event_id,
+                reason="performer hold turns back on the authority their own hold turned off",
+            )
+            return
+        self._refuse(out, "manual", reason, g.event_id)
+
     # ---------------------------------------------------------------- STOP, RESUME
 
     def _stop(self, out: list[Effect], why: str) -> None:
@@ -847,6 +1087,8 @@ class Engine:
         self.preset_b_confirmed = False
         self._last_state.clear()
         self.tracker.authority = False
+        self._authority_off_by_performer = False
+        self._last_go = None
         self._note(out, "stop", reason=why, generation=self.scheduler.generation)
 
     def _resume(self, out: list[Effect]) -> None:
@@ -910,6 +1152,7 @@ class Engine:
                 )
             else:
                 self.tracker.authority = True
+                self._authority_off_by_performer = False
                 self._note(out, "tracker", event="authority_enabled", reason="operator re-enabled")
         elif action == "set_mode":
             if inp.value in MODES:
@@ -1029,8 +1272,14 @@ class Engine:
         if top.section == visit.section:
             if abs(anchor - visit.anchor_ns) * 2 <= visit.beat_ns:
                 return
-            survivors = [i for i in self.scheduler.pending() if i.cue.at.section == visit.section]
-            generation = self.scheduler.bump(survivors)
+            pending = [i for i in self.scheduler.pending() if i.cue.at.section == visit.section]
+            # A GO or BACK placed its entry cues by the GO timing policy (Section 8); the
+            # tracker re-times only the bar-counted cues that follow.
+            entries = [
+                i for i in pending if visit.go_kind is not None and self._cue_beats(i.cue) == 0
+            ]
+            survivors = [i for i in pending if i not in entries]
+            generation = self.scheduler.bump(pending)
             old = visit.anchor_ns
             visit.anchor_ns = anchor
             visit.beat_ns = beat_ns
@@ -1062,9 +1311,7 @@ class Engine:
             return
         self._enter(
             top.section,
-            anchor_ns=anchor,
-            beat_ns=beat_ns,
-            timing_class=None,
+            tracker_anchor=(anchor, beat_ns),
             authorization=None,
             corroboration=None,
             excluded=frozenset(),
