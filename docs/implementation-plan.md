@@ -657,7 +657,7 @@ All methods are causal: they use only audio up to each moment.
 - **documented:** a source is cited
 - **bench_verified:** a bench log is cited
 
-Only bench_verified commands can go into a physical profile, and Roobotto has no override. So the first verification of any command happens outside Roobotto, run by Randy:
+Only bench_verified commands can go into a physical profile, and Roobotto has no override. So the first verification of any command happens outside Roobotto, run by Randy. Each bench test in the table below gets its own Tech Order in `docs/tech-orders/` (Section 14) that turns these steps into a device-specific procedure:
 
 1. **Isolate** the device under test: connect only the routes needed, keep the volume low, and keep the lights safe.
 2. **Watch** every relevant port with an external monitor, such as [Snoize MIDI Monitor](https://www.snoize.com/MIDIMonitor/) (free, macOS).
@@ -725,6 +725,7 @@ Roobotto/
 │   ├── prior-art.md              # index into council section B, plus verified updates
 │   ├── evidence-register.md · safety-model.md · hardware-verification.md
 │   ├── benchmark-protocol.md · authoring-guide.md
+│   ├── tech-orders/              # step-by-step procedures for Randy's real-world work
 │   └── adr/
 ├── schemas/                      # JSON Schemas generated from the pydantic models
 ├── src/roobotto/
@@ -816,7 +817,7 @@ Versions and licenses were taken from PyPI metadata on 16 Oct 2026. `uv.lock` pi
   - press-to-send for classes D, L, and F
   - no audio callback overruns in 30 minutes
   - real-time factor reported
-- **Hardware-in-the-loop scripts.** Randy runs these by hand on the bench; they never run in CI. Each run writes a bench log to `captures/`, which the evidence register cites.
+- **Hardware-in-the-loop scripts.** Randy runs these by hand on the bench, following a Tech Order; they never run in CI. Each run writes a bench log to `captures/`, which the evidence register cites.
 - **Reports.** Markdown plus PNG plots in `experiments/reports/<date>-<name>/`. Every report records:
   - the commit, config, and manifest hashes
   - assistance accounting
@@ -863,6 +864,7 @@ These shape the architecture; they don't kill the project.
 - The agent starts by restating the card's acceptance tests, then writes those tests first.
 - PRs stay small enough to review in about 20 minutes.
 - If part of a card is deferred, the PR lists which acceptance checks remain unsatisfied, and they are never marked done.
+- **Tech Orders for real-world work.** Anything Randy must do outside the coding environment (setting up or rewiring equipment, bench tests, captures, recording sessions, annotation, device settings) gets its own step-by-step Tech Order in `docs/tech-orders/`, written from the template there *before* Randy is asked. The card or PR links it. Acceptance checks that depend on it stay open until its sign-off record is filled in and its outputs exist.
 - **When the agent must stop and ask:**
   - before adding a dependency
   - before changing a schema, a contract (Sections 4.1 and 5), or an invariant
@@ -881,6 +883,7 @@ These shape the architecture; they don't kill the project.
 7. The evidence register is updated for any claim the code relies on.
 8. Deferred checks are listed as unsatisfied.
 9. The PR description separates what was verified from what was assumed.
+10. Every real-world step the PR depends on has a linked Tech Order that follows the template.
 
 ---
 
@@ -999,6 +1002,10 @@ consumed input trace + config + seed → same normalized decision hash.
 - Done = acceptance tests pass; `uv run ruff check`, `uv run pyright`, `uv run pytest` green;
   docs and evidence register updated; PR lists what was verified vs assumed.
 - Never claim something was tested on hardware unless a bench log in captures/ shows it.
+- Any work Randy must do outside the coding environment (equipment setup, wiring, bench
+  tests, captures, recordings, annotation, device settings) needs its own step-by-step Tech
+  Order in docs/tech-orders/, written from the template there before you ask him. Link it
+  from the card/PR; checks that depend on it stay open until its sign-off is filled in.
 ```
 
 ---

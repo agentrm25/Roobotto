@@ -18,6 +18,10 @@ Roobotto drives live-show production cues, so the rules are strict. Read
 4. Update docs and `docs/evidence-register.md` for any research or hardware claim.
 5. In the PR, list what was **verified** and what was **assumed**. Never claim hardware
    testing without a bench log in `captures/`.
+6. If the work needs anything done outside the coding environment (equipment setup, wiring,
+   bench tests, captures, recordings, annotation), write a Tech Order first using the
+   template in [docs/tech-orders/](docs/tech-orders/README.md) and link it from the PR.
+   Acceptance checks that depend on it stay open until its sign-off is complete.
 
 ## Ask the owner first
 
