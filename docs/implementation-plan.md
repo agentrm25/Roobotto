@@ -245,7 +245,7 @@ Everything that schedules or fires a cue is deterministic.
 | STOP switch | press | Stop all Roobotto output and cancel pending work | the press edge, immediately | M1 |
 | EXTEND switch | press | Extend the current section, or exit a loop | the press edge | M4 |
 | H4 preset A | the H4's own button | **RESTORE** today's routing | when the H4 switches (R-1 verifies) | M1 |
-| HUD | keyboard | RESUME, arm or disarm, re-enable tracker authority | deliberate operator action | M1 |
+| HUD (workbench, ADR-018) | button with confirmation | RESUME, arm or disarm, re-enable tracker authority | deliberate operator action | M1 |
 
 **Rules:**
 
@@ -349,13 +349,13 @@ Target the Pi only after measurements show which features matter and how much he
 | WP0 Foundation and decisions | 1–2 | Agent; Randy approves | T-01 | Repo, CI, `.gitignore` additions, ADR-001 to 014, `AGENTS.md`, doc stubs | CI passes on macOS and Linux; ADRs accepted |
 | WP1 Schemas and arrangement model | 2–3 | Agent | T-02, T-03 | Pydantic models, JSON Schemas, validator, bar-grid expansion, production-equivalent classes | Configs that must be rejected are; examples validate |
 | WP2 Control spine | 3–5 | Agent | T-04 | Deterministic engine core, trace recorder, provenance classification, fired ledger, scheduler, supervisor, STOP/RESUME, mock adapter, MIDI adapter (off by default) | Invariant, audit-scenario, and trace-replay tests pass |
-| WP3 Bench verification | 3–6 | Randy: external tools first, then the T-06 tools | T-06; Section 10.2 | Hardware worksheet; today's routing documented; MVP mapping and latency; channel audit | First-time verification followed; no enabled mapping without a bench log |
-| WP4 Recorder and capture rig | 4–5 | Agent builds; Randy tests at home | T-07 | `roobotto record`, manifests, per-block metadata, sync bursts, alignment validator | 10-minute marker test passes; an injected discontinuity is detected |
+| WP3 Bench verification | 3–6 | Randy: external tools first, then the T-06 tools | T-06; T-16 bench-worksheet screen; Section 10.2 | Hardware worksheet; today's routing documented; MVP mapping and latency; channel audit | First-time verification followed; no enabled mapping without a bench log |
+| WP4 Recorder and capture rig | 4–5 | Agent builds; Randy tests at home | T-07; T-16 recorder screen | `roobotto record`, manifests, per-block metadata, sync bursts, alignment validator | 10-minute marker test passes; an injected discontinuity is detected |
 | WP5 Pilot recording and annotation | 5–7 | Band records; Randy annotates | T-09 (P0 part) | 4 takes, manifests, verified annotations | A fresh checkout plus local audio replays the pilot |
 | WP6 Replay, baselines, follower | 6–9 | Agent | T-08, T-10, T-11, T-12 | Synthetic corpus, replay harness, features, baselines, bar-grid follower v0, proposed cues (nothing fires) | Future-read guard test passes; synthetic expectations met |
-| WP7 Results and demo | 9–10, with buffer to day 14 | Agent; Randy reviews | T-13, T-14 (T-15 if time) | Benchmark command, pilot report, dry-run transcript, recommendation | Day-14 definition of done |
+| WP7 Results and demo | 9–10, with buffer to day 14 | Agent; Randy reviews | T-13, T-14 (T-16 HUD screen if time) | Benchmark command, pilot report, dry-run transcript, recommendation | Day-14 definition of done |
 
-**Dependencies.** The main paths are below; not every task is sequential, and they are not equal in size.
+**Dependencies.** The main paths are below; not every task is sequential, and they are not equal in size. T-16, the local web workbench (ADR-018), is not on the graph: each of its screens ships with the card whose functions it wraps, starting with the bench-worksheet screen during WP3.
 
 ```mermaid
 flowchart LR
@@ -435,7 +435,7 @@ The critical path, in text: capture validated at home (T-07) → pilot rehearsal
 - One feed with strong rhythm reaches the Mac: a drum mic, a room mic near the kit, or a drum mix from the mixer.
 - The Mac's MIDI path into the rig is tested (R-2).
 - Song selection (H-2), the switch assignments (P-1, matching ADR-010), and STOP/RESTORE/RESUME (R-1) are verified.
-- T-05 (manual control) and T-15 (HUD) are done, even though they are optional for day 14.
+- T-05 (manual control) and the T-16 HUD screen (which absorbed T-15) are done, even though they are optional for day 14.
 
 **Live behavior:**
 
@@ -738,7 +738,7 @@ Roobotto/
 │   ├── control/   footswitch gestures · modes · STOP/RESUME · watchdog
 │   ├── record/    recorder · sync bursts · manifests · alignment validator
 │   ├── eval/      replay harness · metrics · reports · synthetic renderer
-│   ├── ui/        terminal HUD
+│   ├── ui/        local web workbench: localhost server, one static page (ADR-018)
 │   └── cli.py
 ├── examples/      synthetic songs · rig template (no mappings enabled)
 ├── corpus/        take manifests + annotations (committed; audio referenced by SHA-256)
@@ -768,6 +768,7 @@ Real output requires explicit configuration *and* arming, not just leaving off `
 - `roobotto benchmark`
 - `roobotto measure-latency`
 - `roobotto run --dry-run`
+- `roobotto ui` (the local web workbench, ADR-018; every screen calls the same functions as the commands above)
 
 ### Dependencies
 
@@ -781,7 +782,7 @@ Versions and licenses were taken from PyPI metadata on 16 Oct 2026. `uv.lock` pi
 | core | mido 1.3 · python-rtmidi 1.5 | MIT · MIT | MIDI |
 | core | python-osc 1.10 | Public domain | Exposing state later |
 | core | pydantic 2.14 · PyYAML 6.0 | MIT · MIT | Config and schemas |
-| core | rich 15 · textual 8 | MIT | Terminal HUD |
+| core | standard library `http.server` | — | Local web workbench (ADR-018). No UI dependency in Phase 0; a framework later needs a new ADR |
 | core | matplotlib 3.11 · mir_eval 0.8 | PSF-style · MIT | Reports and metrics |
 | dev | pytest 9 · hypothesis 6 · ruff · pyright | MIT · MPL-2.0 · MIT · MIT | Hypothesis is for tests only |
 | offline extra | beat-this 1.1 + torch ≥2 | MIT (code and weights) · BSD | Reference beat grids for whole recordings, offline |
@@ -918,7 +919,7 @@ All findings in the [17 October audit](implementation-plan-audit.md) are accepte
 | F-12 Assistance accounting | Medium | Reports state how many boundaries each method was told about, and how. Decision rules separate audio-only success from success that needed MIDI. | 6; 9; T-13 |
 | F-4 Units | Clarification | ADR-005 states which quantities use musical units and which use time units | ADR-005; Appendix A |
 | F-5 Research environments | Bounded risk | Half-day cap kept; numba's Apple Silicon support is unofficial; deferred comparisons are named and carried forward | ADR-003; 11; T-11 |
-| Scope: priorities | — | Dry-run demo is P0 (T-14); HUD is P1 (T-15); mixed cards have split acceptance checks | 7; Appendix B |
+| Scope: priorities | — | Dry-run demo is P0 (T-14); HUD is P1 (T-15, now the HUD screen of T-16 per ADR-018); mixed cards have split acceptance checks | 7; Appendix B |
 | Scope: capacity | — | The schedule is treated as a capacity risk; dates come after measured effort | 1; 6; 7; R12 |
 | Scope: reductions | — | A reductions table with a safeguard for each; reduced scope is reported; prerequisites never slip | 7 |
 | Hygiene: `.gitignore` | — | Python patterns added in T-01 | 11; T-01 |
@@ -1176,9 +1177,23 @@ Give the agent one card at a time. P0 work is required for day 14; P1 work may s
 - **Build:** `roobotto run --dry-run --replay <take>`. It drives MVP scene intents on predicted downbeats through the real decision gate and supervisor, using the mock adapter, and prints and logs every decision.
 - **Done when:** a text transcript (stdout plus the JSONL decision log) from a synthetic take is committed under `experiments/reports/`. A run on a pilot take is reviewed locally but not committed: no audio and no private show data.
 
-**T-15 Terminal HUD (P1 for day 14; required before M1).**
-- **Build:** a terminal HUD showing song, section, bar, beat, mode, top hypotheses, next cue, and refusals. It also offers the operator actions: RESUME, with confirmation that the H4 is on preset B; arm and disarm; and re-enable tracker authority.
-- **Done when:** the HUD is usable during a replay, and its operator actions pass through the same input-authority path as the switches.
+**T-15 Terminal HUD.** Superseded by T-16 (ADR-018). Its content is the HUD screen of T-16.
+
+**T-16 Local web workbench (ADR-018). Bench-worksheet screen: P0 during WP3. HUD screen: P1 for day 14, required before M1. Other screens ship with their cards.**
+- **Build:**
+  - `roobotto ui`: a standard-library HTTP server bound to `127.0.0.1` only, one static page, server-sent events for live updates, opens the browser. No new dependency.
+  - **Bench-worksheet screen (with WP3):** one screen per test H-1 to L-1 from Section 10.2, showing what to isolate, what to watch, what to send from the external tool, and the pass condition. A result form writes the row into `docs/hardware-verification.md` and moves the capability record in the rig file from `unknown` to `documented` or `bench_verified`. The screen never sends MIDI.
+  - **Doctor and devices screen (with T-06):** `doctor` and `devices list` output with plain-language fixes; `midi-monitor` as a live log.
+  - **Recorder screen (with T-07):** device and channel choice, record and stop, levels, overflow warnings, then the manifest and the alignment result.
+  - **Run and HUD screen (with T-14; was T-15):** song, section, bar, beat, mode, top hypotheses, next cue, refusals; the dry-run transcript; the operator actions RESUME (with confirmation that the H4 is on preset B), arm and disarm, and re-enable tracker authority.
+- **Rules:** every button calls the function the matching CLI command calls, and the UI holds no logic of its own. Operator actions enter through the input-authority path with operator provenance (ADR-011). Arming from the workbench never persists (I-2). Nothing in the UI reaches an adapter directly.
+- **Done when:**
+  - `roobotto ui` binds only to `127.0.0.1`, and a test confirms the bind address.
+  - Submitting a worksheet result produces the same `docs/hardware-verification.md` row and the same capability-record change as a hand edit, tested on temporary copies. Setting `bench_verified` without a bench log path under `captures/` is refused.
+  - The HUD screen is usable during a replay, and its operator actions pass through the same input-authority path as the switches (from T-15).
+  - A replay with the workbench attached gives the same normalized decision hash as one without (I-19).
+  - Every screen's CLI equivalent is listed in the docs, and the tests run against mock devices in CI.
+  - No UI dependency was added.
 
 ---
 
