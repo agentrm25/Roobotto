@@ -1,0 +1,16 @@
+# Ports file: rig port id -> the operating system's MIDI port name (T-06). System names are
+# machine-specific and private, so the real file is local/ports.yaml (ignored by git). Mock
+# ports need no name. `roobotto devices ports-template <rig>` writes a skeleton with the names
+# seen on this machine as hints; `roobotto doctor` checks that every physical port is named and
+# present.
+kind: ports
+schema_version: 0
+id: ports_template
+rig: rig_template
+ports:
+  mock_out_mvp: null
+  mock_out_aum: null
+  mock_out_helix: null
+  mock_in_helix: null
+  mock_in_switches: null
+# audio_input: "Helix Stadium"   # the capture device for `measure-latency` and T-07, by name

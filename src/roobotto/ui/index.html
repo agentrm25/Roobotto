@@ -17,6 +17,8 @@
   header h1 { font-size:18px; margin:0; }
   header small { color:var(--muted); }
   main { display:grid; grid-template-columns: 300px 1fr; min-height: calc(100vh - 56px); }
+  main[hidden] { display:none; }
+  .tabs { display:flex; gap:6px; }
   nav { border-right:1px solid var(--line); padding:12px; overflow:auto; }
   nav h2, section h2 { font-size:12px; text-transform:uppercase; letter-spacing:.06em; color:var(--muted); margin:12px 0 6px; }
   nav button { display:block; width:100%; text-align:left; padding:8px 10px; margin:2px 0; border:1px solid transparent; border-radius:6px; background:none; color:var(--fg); font:inherit; cursor:pointer; }
@@ -40,15 +42,47 @@
   #msg { margin-top:12px; white-space:pre-wrap; }
   #msg.ok { color:var(--ok); } #msg.bad { color:var(--bad); }
   .note { color:var(--muted); font-size:13px; }
+  .tabs button { padding:6px 12px; border:1px solid var(--line); border-radius:6px; background:none; color:var(--fg); font:inherit; cursor:pointer; }
+  .tabs button.active { background:var(--card); font-weight:600; }
+  .check { display:grid; grid-template-columns:64px 1fr; gap:10px; padding:8px 0; border-top:1px solid var(--line); }
+  .check:first-of-type { border-top:0; }
+  .check .st { font-weight:700; font-size:12px; text-transform:uppercase; padding-top:3px; }
+  .st.ok { color:var(--ok); } .st.warn { color:var(--warn); } .st.fail { color:var(--bad); } .st.skip { color:var(--muted); }
+  .check pre, .pre { margin:4px 0 0; white-space:pre-wrap; font-size:13px; background:var(--bg); border:1px solid var(--line); border-radius:6px; padding:8px; }
+  .check .fix { margin-top:4px; }
+  table { border-collapse:collapse; width:100%; font-size:14px; }
+  td, th { text-align:left; padding:4px 8px; border-top:1px solid var(--line); } th { color:var(--muted); font-weight:600; }
   @media (max-width: 760px) { main { grid-template-columns:1fr; } nav { border-right:0; border-bottom:1px solid var(--line); } section { padding:16px; } }
 </style>
 </head>
 <body>
 <header>
   <h1>Roobotto workbench</h1>
-  <small>Bench worksheet (plan Section 10.2). This page guides and records; it never sends MIDI.</small>
+  <nav class="tabs">
+    <button type="button" data-tab="bench" class="active">Bench worksheet</button>
+    <button type="button" data-tab="doctor">Doctor &amp; devices</button>
+  </nav>
+  <small>This page guides, checks and records; it never sends MIDI.</small>
 </header>
-<main>
+<main id="tab-doctor" hidden>
+  <nav>
+    <h2>Setup checks</h2>
+    <div id="checks-nav" class="note"></div>
+    <p class="note">CLI twins: <code>roobotto doctor</code>, <code>roobotto devices list</code>.</p>
+  </nav>
+  <section>
+    <div id="doctor" class="card"><p class="note">Loading…</p></div>
+    <div id="devices" class="card"><p class="note">Loading…</p></div>
+    <div class="card">
+      <h3>Ports file for this machine</h3>
+      <p class="note">Save this as <code>local/ports.yaml</code>, then replace each <code>null</code> for a physical port with the exact name from the lists above. Mock ports can stay null.</p>
+      <pre id="ports-template" class="pre">…</pre>
+      <button class="primary" type="button" id="copy-ports">Copy to clipboard</button>
+      <span id="copy-msg" class="note"></span>
+    </div>
+  </section>
+</main>
+<main id="tab-bench">
   <nav>
     <h2>Bench tests</h2>
     <div id="tests"></div>
@@ -185,6 +219,36 @@
     const m = $('msg');
     if (r.ok) { m.className = 'ok'; m.textContent = 'Recorded. Wrote:\n' + data.written.join('\n'); $('notes').value = ''; await load(); }
     else { m.className = 'bad'; m.textContent = 'Not recorded:\n' + data.error; }
+  };
+
+  // --- Doctor & devices tab ---
+  document.querySelectorAll('.tabs button').forEach(b => b.onclick = () => {
+    document.querySelectorAll('.tabs button').forEach(x => x.classList.toggle('active', x === b));
+    $('tab-bench').hidden = b.dataset.tab !== 'bench';
+    $('tab-doctor').hidden = b.dataset.tab !== 'doctor';
+    if (b.dataset.tab === 'doctor') loadDoctor();
+  });
+
+  async function loadDoctor() {
+    const [d, v, t] = await Promise.all([
+      fetch('/api/doctor').then(r => r.json()),
+      fetch('/api/devices').then(r => r.json()),
+      fetch('/api/ports-template').then(r => r.ok ? r.text() : r.json().then(j => '# ' + j.error)),
+    ]);
+    $('checks-nav').innerHTML = d.checks.map(c => `<div><span class="st ${c.status}">${c.status}</span> ${esc(c.title)}</div>`).join('');
+    $('doctor').innerHTML = `<h3>${d.ready ? 'Ready' : 'Not ready'} <span class="note">(checked ${esc(d.paths.join(', '))})</span></h3>` +
+      d.checks.map(c => `<div class="check"><div class="st ${c.status}">${c.status}</div><div><strong>${esc(c.title)}</strong><pre>${esc(c.detail)}</pre>${c.fix ? `<div class="fix"><strong>Fix:</strong> ${md(c.fix)}</div>` : ''}</div></div>`).join('');
+    const list = (xs) => xs.length ? xs.map(x => `<li>${esc(x)}</li>`).join('') : '<li class="note">(none)</li>';
+    $('devices').innerHTML = `<h3>What this machine sees</h3>
+      <div class="row"><div><strong>MIDI inputs</strong><ul>${list(v.midi_inputs)}</ul></div><div><strong>MIDI outputs</strong><ul>${list(v.midi_outputs)}</ul></div></div>
+      <strong>Audio devices</strong>
+      ${v.audio.length ? `<table><tr><th>#</th><th>Name</th><th>In</th><th>Out</th><th>Rate</th><th>API</th></tr>${v.audio.map(a => `<tr><td>${a.index}</td><td>${esc(a.name)}</td><td>${a.inputs}</td><td>${a.outputs}</td><td>${a.default_samplerate}</td><td>${esc(a.hostapi)}</td></tr>`).join('')}</table>` : '<p class="note">(none)</p>'}
+      ${v.errors.map(e => `<p class="note">${esc(e)}</p>`).join('')}`;
+    $('ports-template').textContent = t;
+  }
+  $('copy-ports').onclick = async () => {
+    try { await navigator.clipboard.writeText($('ports-template').textContent); $('copy-msg').textContent = 'Copied.'; }
+    catch (e) { $('copy-msg').textContent = 'Select the text and copy it by hand.'; }
   };
 
   load();

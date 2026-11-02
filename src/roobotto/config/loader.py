@@ -7,15 +7,17 @@ from typing import Any
 import yaml
 from pydantic import BaseModel, ValidationError
 
+from roobotto.config.ports import Ports
 from roobotto.config.rig import Rig
 from roobotto.config.setlist import Setlist
 from roobotto.config.song import Song
 
-Config = Song | Rig | Setlist
-KINDS: dict[str, type[Song] | type[Rig] | type[Setlist]] = {
+Config = Song | Rig | Setlist | Ports
+KINDS: dict[str, type[Song] | type[Rig] | type[Setlist] | type[Ports]] = {
     "song": Song,
     "rig": Rig,
     "setlist": Setlist,
+    "ports": Ports,
 }
 
 

@@ -14,6 +14,7 @@ from typing import Any
 import pytest
 
 from roobotto.cli import build_parser, main
+from roobotto.devices.probe import AudioDevice, FakeSystem
 from roobotto.ui.server import Workbench, make_server
 
 ROOT = Path(__file__).parents[2]
@@ -32,7 +33,16 @@ def paths(tmp_path: Path) -> tuple[Path, Path]:
 @pytest.fixture
 def server(paths: tuple[Path, Path]) -> Iterator[Workbench]:
     doc, rig = paths
-    srv = make_server(doc=doc, rig=rig, port=0)
+    system = FakeSystem(
+        midi_inputs=["KeyLab mk3"],
+        midi_outputs=["H4 Port 1"],
+        audio=[AudioDevice(0, "Helix Stadium", 8, 8, 48000.0, "Core Audio")],
+        modules={"mido": "1.3.3", "rtmidi": "1.5.8", "sounddevice": "0.5.6"},
+        python=(3, 12, 7),
+    )
+    srv = make_server(
+        doc=doc, rig=rig, port=0, config_paths=[ROOT / "examples"], system=system, cwd=ROOT
+    )
     thread = threading.Thread(target=srv.serve_forever, daemon=True)
     thread.start()
     try:
@@ -144,6 +154,28 @@ def test_bad_posts_change_nothing(server: Workbench, paths: tuple[Path, Path]) -
     assert _request(server, "POST", "/api/results", body, host="evil.example")[0] == 403
     assert _request(server, "POST", "/api/other", body)[0] == 404
     assert (doc.read_bytes(), rig.read_bytes()) == before
+
+
+def test_doctor_and_devices_endpoints(server: Workbench) -> None:
+    status, page = _request(server, "GET", "/")
+    assert status == 200 and isinstance(page, bytes) and b"Doctor" in page
+
+    status, data = _request(server, "GET", "/api/devices")
+    assert status == 200
+    assert data["midi_inputs"] == ["KeyLab mk3"] and data["audio"][0]["name"] == "Helix Stadium"
+
+    status, data = _request(server, "GET", "/api/doctor")
+    assert status == 200
+    by_id = {c["id"]: c for c in data["checks"]}
+    assert by_id["configs"]["status"] == "ok" and by_id["ports"]["status"] == "ok"
+    assert by_id["dirs"]["status"] == "warn" and "mkdir" in by_id["dirs"]["fix"]
+    assert data["ready"] is True
+    assert data["paths"] == [str(ROOT / "examples")]
+
+    status, text = _request(server, "GET", "/api/ports-template")
+    assert status == 200 and isinstance(text, bytes)
+    assert b"rig: rig_template" in text and b"# outputs seen: H4 Port 1" in text
+    assert _request(server, "GET", "/api/doctor", host="evil.example")[0] == 403
 
 
 def test_cli_ui_defaults_and_flags() -> None:

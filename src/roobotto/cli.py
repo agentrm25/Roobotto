@@ -1,7 +1,8 @@
-"""Command-line entry point: ``validate-config``, ``schemas export``, ``run --dry-run``, ``bench``
-and ``ui``."""
+"""Command-line entry point: ``validate-config``, ``schemas export``, ``run --dry-run``, ``bench``,
+``devices``, ``doctor`` and ``ui``."""
 
 import argparse
+import json
 import sys
 import webbrowser
 from collections.abc import Sequence
@@ -10,6 +11,8 @@ from pathlib import Path
 
 from roobotto.config import schemas
 from roobotto.config.validate import validate_files
+from roobotto.devices import doctor as doctor_mod
+from roobotto.devices import probe
 from roobotto.engine.dry_run import DryRunError, dry_run
 from roobotto.ui import worksheet
 from roobotto.ui.server import make_server
@@ -21,6 +24,11 @@ def default_rig() -> Path:
     """The private rig when it exists (ADR-008), else the template."""
     private = Path("local/rig.yaml")
     return private if private.exists() else Path("examples/rig.template.yaml")
+
+
+def default_config_dir() -> Path:
+    """The private config folder when it exists, else the examples."""
+    return Path("local") if Path("local").is_dir() else Path("examples")
 
 
 def _validate_config(args: argparse.Namespace) -> int:
@@ -160,8 +168,42 @@ def _bench_record(args: argparse.Namespace) -> int:
     return 0
 
 
+def _devices_list(args: argparse.Namespace) -> int:
+    report = probe.list_devices(probe.live_system())
+    if args.json:
+        print(json.dumps(report.as_dict(), indent=1))
+    else:
+        print("\n".join(probe.render(report)))
+    return 0
+
+
+def _devices_ports_template(args: argparse.Namespace) -> int:
+    report = probe.list_devices(probe.live_system())
+    try:
+        print(probe.ports_template(Path(args.rig), report), end="")
+    except ValueError as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        return 1
+    return 0
+
+
+def _doctor(args: argparse.Namespace) -> int:
+    paths = [Path(p) for p in args.paths] or [default_config_dir()]
+    checks = doctor_mod.run_doctor(paths, probe.live_system(), cwd=Path.cwd())
+    if args.json:
+        print(json.dumps([c.as_dict() for c in checks], indent=1))
+    else:
+        print("\n".join(doctor_mod.render(checks)))
+    return 1 if doctor_mod.failed(checks) else 0
+
+
 def _ui(args: argparse.Namespace) -> int:
-    server = make_server(doc=Path(args.doc), rig=Path(args.rig), port=args.port)
+    server = make_server(
+        doc=Path(args.doc),
+        rig=Path(args.rig),
+        port=args.port,
+        config_paths=[Path(p) for p in args.paths] or [default_config_dir()],
+    )
     print(
         f"Roobotto workbench at {server.url}  (rig: {args.rig}, docs: {args.doc}). Ctrl-C stops it."
     )
@@ -247,6 +289,26 @@ def build_parser() -> argparse.ArgumentParser:
     _add_paths(rec)
     rec.set_defaults(func=_bench_record)
 
+    devices = sub.add_parser("devices", help="what this machine can see; opens nothing")
+    devices_sub = devices.add_subparsers(dest="devices_command", required=True)
+    dev_list = devices_sub.add_parser("list", help="MIDI port names and audio devices")
+    dev_list.add_argument("--json", action="store_true")
+    dev_list.set_defaults(func=_devices_list)
+    tmpl = devices_sub.add_parser(
+        "ports-template", help="print a local/ports.yaml skeleton for a rig, with the names seen"
+    )
+    tmpl.add_argument("rig", help="rig file")
+    tmpl.set_defaults(func=_devices_ports_template)
+
+    doctor = sub.add_parser(
+        "doctor", help="check this machine and config; each failure names a fix"
+    )
+    doctor.add_argument(
+        "paths", nargs="*", help="config files or folders (default: local/ or examples/)"
+    )
+    doctor.add_argument("--json", action="store_true")
+    doctor.set_defaults(func=_doctor)
+
     ui = sub.add_parser("ui", help="open the local web workbench (127.0.0.1 only, ADR-018)")
     ui.add_argument(
         "--port",
@@ -255,6 +317,9 @@ def build_parser() -> argparse.ArgumentParser:
         help="port on 127.0.0.1 (default: 8765; 0 picks a free one)",
     )
     ui.add_argument("--no-browser", action="store_true", help="do not open a browser")
+    ui.add_argument(
+        "paths", nargs="*", help="config files or folders for doctor (default: local/ or examples/)"
+    )
     _add_paths(ui)
     ui.set_defaults(func=_ui)
     return parser

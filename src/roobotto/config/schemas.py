@@ -5,6 +5,7 @@ from pathlib import Path
 
 from pydantic import BaseModel
 
+from roobotto.config.ports import Ports
 from roobotto.config.rig import DeviceCapability, Rig
 from roobotto.config.setlist import Setlist
 from roobotto.config.song import Cue, Song
@@ -24,6 +25,7 @@ SCHEMAS: dict[str, type[BaseModel]] = {
     "device_capability": DeviceCapability,
     "rig": Rig,
     "setlist": Setlist,
+    "ports": Ports,
     "event": Event,
     "musical_state": MusicalState,
     "cue_occurrence": CueOccurrence,

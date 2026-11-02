@@ -46,6 +46,9 @@ adapter. There is no override (I-1, I-2, ADR-009).
   `status` and `evidence` into the rig file the way a hand edit would, re-validating the rig
   first, and refuses `bench_verified` without a bench log under `captures/`. It imports no
   adapter and sends nothing (checked by `tests/unit/test_worksheet.py`).
+- `roobotto doctor` and `roobotto devices list` (T-06) read port and device names only. They
+  open no MIDI port and no audio stream (checked by `tests/unit/test_devices.py`), and doctor
+  reports "ready" for a mock profile without that meaning anything reaches hardware.
 
 The supervisor also refuses a send when:
 
