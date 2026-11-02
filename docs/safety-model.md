@@ -42,6 +42,10 @@ adapter. There is no override (I-1, I-2, ADR-009).
 - The MIDI adapter was constructed with a port backend. The mido backend exists, but nothing
   constructs it by default and no test opens a real port. `roobotto run` without `--dry-run` is
   refused, so no code path reaches hardware yet.
+- The workbench (`roobotto ui`, ADR-018) is not on this path. Its bench-worksheet screen writes
+  `status` and `evidence` into the rig file the way a hand edit would, re-validating the rig
+  first, and refuses `bench_verified` without a bench log under `captures/`. It imports no
+  adapter and sends nothing (checked by `tests/unit/test_worksheet.py`).
 
 The supervisor also refuses a send when:
 

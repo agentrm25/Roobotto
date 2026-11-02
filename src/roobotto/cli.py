@@ -1,13 +1,26 @@
-"""Command-line entry point: ``validate-config``, ``schemas export`` and ``run --dry-run``."""
+"""Command-line entry point: ``validate-config``, ``schemas export``, ``run --dry-run``, ``bench``
+and ``ui``."""
 
 import argparse
 import sys
+import webbrowser
 from collections.abc import Sequence
+from datetime import date
 from pathlib import Path
 
 from roobotto.config import schemas
 from roobotto.config.validate import validate_files
 from roobotto.engine.dry_run import DryRunError, dry_run
+from roobotto.ui import worksheet
+from roobotto.ui.server import make_server
+
+DEFAULT_DOC = Path("docs/hardware-verification.md")
+
+
+def default_rig() -> Path:
+    """The private rig when it exists (ADR-008), else the template."""
+    private = Path("local/rig.yaml")
+    return private if private.exists() else Path("examples/rig.template.yaml")
 
 
 def _validate_config(args: argparse.Namespace) -> int:
@@ -59,6 +72,121 @@ def _run(args: argparse.Namespace) -> int:
     return 0
 
 
+def _bench_list(args: argparse.Namespace) -> int:
+    for test in worksheet.TESTS:
+        print(f"{test.id} {test.title}")
+    return 0
+
+
+def _bench_show(args: argparse.Namespace) -> int:
+    test = worksheet.TESTS_BY_ID.get(args.test_id)
+    if test is None:
+        print(f"unknown test '{args.test_id}'; see `roobotto bench list`", file=sys.stderr)
+        return 1
+    print(f"{test.id} {test.title}\n\nMethod: {test.method}")
+    print(f"\nPass: {test.passes}\n\nGates: {test.gates}")
+    return 0
+
+
+def _parse_value(spec: str) -> tuple[str, worksheet.WireValue]:
+    """``name=kind:data1[:data2]``, as in ``chorus=note_on:60:100``."""
+    name, _, rest = spec.partition("=")
+    parts = rest.split(":")
+    if not name or len(parts) not in (2, 3) or not all(parts):
+        raise worksheet.WorksheetError(f"--value '{spec}' must be name=kind:data1[:data2]")
+    try:
+        data = [int(x) for x in parts[1:]]
+    except ValueError as exc:
+        raise worksheet.WorksheetError(f"--value '{spec}': data bytes must be integers") from exc
+    wire = worksheet.capability_from_dict(
+        {
+            "device": "x",
+            "kind": "command",
+            "name": "x",
+            "status": "documented",
+            "values": {
+                name: {
+                    "kind": parts[0],
+                    "data1": data[0],
+                    "data2": data[1] if len(data) == 2 else None,
+                }
+            },
+        }
+    ).values
+    assert wire is not None
+    return name, wire[name]
+
+
+def _bench_record(args: argparse.Namespace) -> int:
+    capability = None
+    try:
+        if args.record:
+            device, _, rest = args.record.partition(".")
+            kind, name = (
+                ("report", rest.removeprefix("reports."))
+                if rest.startswith("reports.")
+                else ("command", rest)
+            )
+            if not args.status:
+                raise worksheet.WorksheetError("--record needs --status documented|bench_verified")
+            values = dict(_parse_value(v) for v in args.value) or None
+            capability = worksheet.CapabilityChange(
+                device=device,
+                kind=kind,
+                name=name,
+                status=args.status,
+                source=args.source,
+                values=values,
+                other_recipients=args.recipients or "",
+                side_effects=args.side_effects or "",
+                path_checked=args.path_checked or "",
+            )
+        elif args.value or args.status:
+            raise worksheet.WorksheetError("--status and --value need --record")
+        result = worksheet.Result(
+            test_id=args.test_id,
+            date=args.date or date.today().isoformat(),
+            outcome=args.outcome,
+            notes=args.notes,
+            bench_log=args.log,
+            capability=capability,
+        )
+        written = worksheet.record(result, Path(args.doc), Path(args.rig))
+    except worksheet.WorksheetError as exc:
+        print(f"not recorded: {exc}", file=sys.stderr)
+        return 1
+    for path in written:
+        print(f"wrote {path}")
+    return 0
+
+
+def _ui(args: argparse.Namespace) -> int:
+    server = make_server(doc=Path(args.doc), rig=Path(args.rig), port=args.port)
+    print(
+        f"Roobotto workbench at {server.url}  (rig: {args.rig}, docs: {args.doc}). Ctrl-C stops it."
+    )
+    if not args.no_browser:
+        webbrowser.open(server.url)
+    try:
+        server.serve_forever()
+    except KeyboardInterrupt:
+        pass
+    finally:
+        server.server_close()
+    return 0
+
+
+def _add_paths(parser: argparse.ArgumentParser) -> None:
+    parser.add_argument(
+        "--doc", default=str(DEFAULT_DOC), help=f"verification doc (default: {DEFAULT_DOC})"
+    )
+    parser.add_argument(
+        "--rig",
+        default=str(default_rig()),
+        help="rig file (default: local/rig.yaml if present, else the template)",
+    )
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="roobotto")
     sub = parser.add_subparsers(dest="command", required=True)
@@ -87,6 +215,48 @@ def build_parser() -> argparse.ArgumentParser:
     run.add_argument("--performance", default="dry_run", help="performance id (default: dry_run)")
     run.add_argument("--trace", help="replay this consumed input trace instead of a walkthrough")
     run.set_defaults(func=_run)
+
+    bench = sub.add_parser(
+        "bench", help="the bench worksheet (plan Section 10.2); the CLI twin of `ui`"
+    )
+    bench_sub = bench.add_subparsers(dest="bench_command", required=True)
+    bench_sub.add_parser("list", help="list the bench tests").set_defaults(func=_bench_list)
+    show = bench_sub.add_parser("show", help="print one test's method and pass condition")
+    show.add_argument("test_id")
+    show.set_defaults(func=_bench_show)
+    rec = bench_sub.add_parser("record", help="record a result; never sends MIDI")
+    rec.add_argument("test_id")
+    rec.add_argument("--date", help="YYYY-MM-DD (default: today)")
+    rec.add_argument("--outcome", required=True, choices=["pass", "fail", "partial"])
+    rec.add_argument("--notes", default="", help="what happened")
+    rec.add_argument("--log", help="bench log path under captures/")
+    rec.add_argument(
+        "--record", help="capability record to update: device.command or device.reports.name"
+    )
+    rec.add_argument("--status", choices=["documented", "bench_verified"])
+    rec.add_argument("--source", help="evidence-register id, for documented")
+    rec.add_argument(
+        "--value",
+        action="append",
+        default=[],
+        help="command wire message, name=kind:data1[:data2]; repeatable",
+    )
+    rec.add_argument("--recipients", help="commands: other recipients checked")
+    rec.add_argument("--side-effects", dest="side_effects", help="commands: side effects")
+    rec.add_argument("--path-checked", dest="path_checked", help="reports: the input path checked")
+    _add_paths(rec)
+    rec.set_defaults(func=_bench_record)
+
+    ui = sub.add_parser("ui", help="open the local web workbench (127.0.0.1 only, ADR-018)")
+    ui.add_argument(
+        "--port",
+        type=int,
+        default=8765,
+        help="port on 127.0.0.1 (default: 8765; 0 picks a free one)",
+    )
+    ui.add_argument("--no-browser", action="store_true", help="do not open a browser")
+    _add_paths(ui)
+    ui.set_defaults(func=_ui)
     return parser
 
 

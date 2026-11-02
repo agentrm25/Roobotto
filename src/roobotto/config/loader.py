@@ -67,11 +67,17 @@ def issues_from_validation_error(path: str, error: ValidationError) -> list[Issu
 
 def load_config(path: Path) -> tuple[Config | None, list[Issue]]:
     """Parse one YAML file. Returns the model, or ``None`` plus the issues found."""
-    name = str(path)
     try:
-        raw = yaml.load(path.read_text(encoding="utf-8"), Loader=_UniqueKeyLoader)
+        text = path.read_text(encoding="utf-8")
     except OSError as exc:
-        return None, [Issue(name, "", f"cannot read file: {exc.strerror or exc}")]
+        return None, [Issue(str(path), "", f"cannot read file: {exc.strerror or exc}")]
+    return load_config_text(text, str(path))
+
+
+def load_config_text(text: str, name: str) -> tuple[Config | None, list[Issue]]:
+    """Parse YAML text as one config. ``name`` labels the issues (usually the file path)."""
+    try:
+        raw = yaml.load(text, Loader=_UniqueKeyLoader)
     except yaml.YAMLError as exc:
         return None, [Issue(name, "", f"invalid YAML: {str(exc).replace(chr(10), ' ')}")]
     if not isinstance(raw, dict):
