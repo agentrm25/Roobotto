@@ -22,3 +22,4 @@ invariant needs a new ADR that supersedes it. Use [000-template.md](000-template
 | [015](015-input-capability-records.md) | Input capability records |
 | [016](016-song-instances-in-the-fired-ledger.md) | Song instances in the fired ledger |
 | [017](017-same-device-spacing.md) | Spacing two sends to one device within a cue |
+| [018](018-local-web-workbench.md) | Local web workbench instead of a terminal HUD |
