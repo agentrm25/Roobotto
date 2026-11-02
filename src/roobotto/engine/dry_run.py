@@ -80,6 +80,13 @@ def _describe(record: dict[str, Any], origin: int) -> str | None:
         return f"{seconds:9.3f} s  REFUSE  {record['intent'] or '*'}  {where}  ({record['reason']})"
     if record["type"] == "decision" and record.get("kind") in ("ask", "abstain", "hold"):
         return f"{seconds:9.3f} s  {record['kind'].upper():7} {where}  ({record['reason']})"
+    if record["type"] == "go":
+        return (
+            f"{seconds:9.3f} s  GO      class {record['timing_class']} into "
+            f"{record['section']} visit {record['visit']}"
+        )
+    if record["type"] == "back":
+        return f"{seconds:9.3f} s  BACK    {record['event']}"
     if record["type"] == "visit":
         return f"{seconds:9.3f} s  ENTER   {record['section']} visit {record['visit']}"
     return None

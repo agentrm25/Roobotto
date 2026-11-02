@@ -64,3 +64,7 @@ consumed input trace + config + seed → same normalized decision hash.
 - Done = acceptance tests pass; `uv run ruff check`, `uv run pyright`, `uv run pytest` green;
   docs and evidence register updated; PR lists what was verified vs assumed.
 - Never claim something was tested on hardware unless a bench log in captures/ shows it.
+- Any work Randy must do outside the coding environment (equipment setup, wiring, bench
+  tests, captures, recordings, annotation, device settings) needs its own step-by-step Tech
+  Order in docs/tech-orders/, written from the template there before you ask him. Link it
+  from the card/PR; checks that depend on it stay open until its sign-off is filled in.

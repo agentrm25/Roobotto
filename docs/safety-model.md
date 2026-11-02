@@ -129,6 +129,51 @@ A restart starts unarmed with nothing pending. Every song instance is recorded i
 starts (ADR-016), and a restart continues after the highest one, so no occurrence id is reused
 and no past occurrence becomes new work.
 
+## Footswitches and GO timing
+
+The control map (Section 5.3, ADR-010) is built from raw press and release edges in
+`src/roobotto/control/gestures.py`:
+
+- **GO, STOP, EXTEND** act on the press edge. Each has a switch to itself.
+- **BACK** is a tap on the shared BACK/MANUAL switch: released before `tap_max_ms` (500 ms). It is
+  recognized on release, and the release authorizes it.
+- **MANUAL** is a hold on that switch: recognized the moment the hold reaches `hold_ms`
+  (500 ms). The release that follows does nothing.
+
+BACK and MANUAL never issue a GO (I-17): their code paths never reach the GO handler. Rig
+validation keeps GO and EXTEND off any switch that has a tap or hold.
+
+**BACK.**
+
+- If nothing from the last GO has been committed, BACK cancels that GO with no output. It
+  restores the previous visit and puts back its still-pending cues.
+- If anything was committed, BACK re-enters the previous section as a new visit. That visit's
+  occurrences are authorized by the BACK release, and its entry cues are sent now, unquantized.
+- BACK never moves forward. It is refused while STOP is active, and after RESUME until the next
+  GO.
+
+**MANUAL** has no effect before M3, and is logged. From M3 a hold turns tracker authority off,
+and fires or cancels nothing. A second hold turns it back on only if the performer's own hold
+turned it off. Authority the system suspended (stale stream, new tracker session, a lost
+tracker, STOP) comes back only through the operator. This reconciles Section 5.3 ("toggle off
+or on") with ADR-006 ("only the operator can re-enable it") by taking the stricter reading.
+
+**GO timing** (Section 8) is a pure function in `src/roobotto/control/go_timing.py`. Every GO
+writes a `go` record with its press time and class. The send times are in the output attempts it
+authorized.
+
+- **F, no lock.** There is no fresh, following tracker state for the song, or no downbeat within
+  a bar. The press is the downbeat and the cues go now.
+- **L, late.** The GO comes within the late window (a quarter bar) after a downbeat. The section
+  counts from that downbeat and the cues go now.
+- **Q.** The GO comes before an entry cue's send deadline, which is the next downbeat minus
+  device latency minus the margin. The cue is sent at the deadline.
+- **D.** The GO comes after the send deadline but before the downbeat. The cue's `on_miss`
+  applies, and it is never deferred to the next bar.
+
+Tracker relocalization re-times only the bar-counted cues after the entry. It never moves the
+entry cues a GO or BACK placed.
+
 ## STOP and RESUME
 
 STOP acts on the press edge. It does four things:
@@ -150,15 +195,14 @@ RESUME needs an active STOP and an operator confirmation that the H4 is on prese
 
 | Invariant | Tests |
 |---|---|
-| I-1 to I-16, I-18, I-19 | `tests/property/test_invariants.py`: a Hypothesis state machine, one named check per invariant, run after every step |
+| I-1 to I-19 | `tests/property/test_invariants.py`: a Hypothesis state machine, one named check per invariant, run after every step; plus a property test over random control maps for I-17 |
 | I-1, I-2, I-13, I-15 | `tests/unit/test_supervisor.py` (routing matrix, including a rig that skipped validation) |
 | I-9 | `tests/replay/test_trace_replay.py` (future-read guard) |
 | I-10 | `tests/unit/test_midi_wire.py` (single conversion function, checked by scanning the source) |
 | I-14 | `tests/unit/test_gate.py` (every mode × milestone × posterior); `tests/scenarios/test_audit_scenarios.py` |
 | I-19 | `tests/replay/test_trace_replay.py` (loss, reordering, simultaneous input, staleness, tracker restart, clock jump) |
 | Audit scenarios F-6, F-7, F-8, F-9 | `tests/scenarios/test_audit_scenarios.py` |
-
-I-17 (gestures) lands with T-05.
+| F-1 gestures, F-10 GO timing (T-05) | `tests/scenarios/test_manual_control.py`; tables in `tests/unit/test_go_timing.py` and `tests/unit/test_gestures.py` |
 
 ## Known gaps
 
@@ -170,7 +214,8 @@ I-17 (gestures) lands with T-05.
 - **Rate limits across restarts.** The supervisor's rate-limit memory does not survive a restart.
 - **Spacing and skip windows.** A cue with `on_miss: skip` cannot space two commands to one device
   (ADR-017), so its second intent is refused and logged.
-- **Not yet built.** Tap and hold gestures (BACK, MANUAL), the class L late window and the
-  table-driven GO policy come with T-05. EXTEND and tracker-detected repeats come with M4.
+- **Gesture and timing thresholds (E-26).** The 500 ms tap and hold thresholds and the quarter-bar
+  late window are plan starting values. Bench test P-1 measures real footswitch timing.
+- **Not yet built.** EXTEND and tracker-detected repeats come with M4.
 - **Not tested on hardware.** No command is bench-verified, so nothing has reached hardware.
 - **Not measured on the Mac.** Real-time deadlines and scheduler jitter have not been measured.

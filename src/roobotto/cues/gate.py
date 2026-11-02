@@ -24,7 +24,7 @@ from roobotto.config.song import Cue
 from roobotto.messages import Authorization, Decision, OccurrenceId
 
 Mode = Literal["manual", "assisted", "auto"]
-TimingClass = Literal["Q", "D", "F"]
+TimingClass = Literal["Q", "D", "L", "F"]
 
 DEFAULT_THRESHOLD = {"decorative": 0.33, "standard": 0.8}
 """C_FP / (C_FP + C_FN) from Section 5.1, used when ``requires.posterior_min`` is not set."""

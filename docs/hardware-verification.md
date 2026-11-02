@@ -3,7 +3,8 @@
 No command is bench-verified yet. Every hardware command must reference a capability record
 marked `bench_verified` with a bench log cited below (AGENTS.md rule 2). Roobotto has no
 override for unverified commands. First-time verification is done by the owner outside
-Roobotto, following `implementation-plan.md` Section 10.2.
+Roobotto, following `implementation-plan.md` Section 10.2 and the bench test's Tech Order in
+[`tech-orders/`](tech-orders/README.md). Each row below should cite the TO that produced it.
 
 ## Verified commands
 
