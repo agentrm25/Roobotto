@@ -1,0 +1,194 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Roobotto workbench</title>
+<style>
+  :root { --bg:#f6f5f2; --fg:#1d1d1b; --muted:#6a675f; --line:#d9d6ce; --card:#ffffff;
+          --ok:#1d6b3a; --warn:#9a5b00; --bad:#9b1c1c; --accent:#2a4d8f; }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg:#161614; --fg:#ecebe6; --muted:#a39f94; --line:#34332f; --card:#1f1f1c;
+            --ok:#5fcf86; --warn:#e2a23b; --bad:#ef6b6b; --accent:#8fb0ee; }
+  }
+  * { box-sizing: border-box; }
+  body { margin:0; background:var(--bg); color:var(--fg); font:15px/1.5 system-ui, sans-serif; }
+  header { padding:14px 20px; border-bottom:1px solid var(--line); display:flex; gap:16px; align-items:baseline; flex-wrap:wrap; }
+  header h1 { font-size:18px; margin:0; }
+  header small { color:var(--muted); }
+  main { display:grid; grid-template-columns: 300px 1fr; min-height: calc(100vh - 56px); }
+  nav { border-right:1px solid var(--line); padding:12px; overflow:auto; }
+  nav h2, section h2 { font-size:12px; text-transform:uppercase; letter-spacing:.06em; color:var(--muted); margin:12px 0 6px; }
+  nav button { display:block; width:100%; text-align:left; padding:8px 10px; margin:2px 0; border:1px solid transparent; border-radius:6px; background:none; color:var(--fg); font:inherit; cursor:pointer; }
+  nav button:hover { border-color:var(--line); }
+  nav button.active { background:var(--card); border-color:var(--line); }
+  nav button .id { display:inline-block; width:40px; font-weight:600; }
+  nav .done { color:var(--ok); float:right; }
+  section { padding:20px 28px; max-width: 900px; }
+  .card { background:var(--card); border:1px solid var(--line); border-radius:8px; padding:16px 18px; margin:12px 0; }
+  .card h3 { margin:0 0 6px; font-size:16px; }
+  .card p { margin:6px 0; }
+  label { display:block; margin:10px 0 4px; font-weight:600; }
+  input[type=text], input[type=date], select, textarea { width:100%; padding:7px 9px; border:1px solid var(--line); border-radius:6px; background:var(--bg); color:var(--fg); font:inherit; }
+  textarea { min-height:70px; }
+  .row { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+  .status { font-size:12px; padding:2px 7px; border-radius:10px; border:1px solid var(--line); }
+  .status.unknown { color:var(--muted); } .status.documented { color:var(--warn); } .status.bench_verified { color:var(--ok); }
+  .values { border-top:1px solid var(--line); margin-top:10px; padding-top:8px; }
+  .values .row { grid-template-columns: 1.2fr 1.4fr 1fr 1fr; align-items:end; }
+  button.primary { margin-top:14px; padding:9px 16px; border:0; border-radius:6px; background:var(--accent); color:#fff; font:inherit; font-weight:600; cursor:pointer; }
+  #msg { margin-top:12px; white-space:pre-wrap; }
+  #msg.ok { color:var(--ok); } #msg.bad { color:var(--bad); }
+  .note { color:var(--muted); font-size:13px; }
+  @media (max-width: 760px) { main { grid-template-columns:1fr; } nav { border-right:0; border-bottom:1px solid var(--line); } section { padding:16px; } }
+</style>
+</head>
+<body>
+<header>
+  <h1>Roobotto workbench</h1>
+  <small>Bench worksheet (plan Section 10.2). This page guides and records; it never sends MIDI.</small>
+</header>
+<main>
+  <nav>
+    <h2>Bench tests</h2>
+    <div id="tests"></div>
+    <h2>Capability records</h2>
+    <div id="records" class="note"></div>
+  </nav>
+  <section>
+    <div id="detail" class="card"><p class="note">Loading…</p></div>
+    <form id="form" class="card" hidden>
+      <h3>Record a result</h3>
+      <div class="row">
+        <div><label for="date">Date</label><input type="date" id="date" required></div>
+        <div><label for="outcome">Outcome</label>
+          <select id="outcome"><option value="pass">pass</option><option value="partial">partial</option><option value="fail">fail</option></select></div>
+      </div>
+      <label for="log">Bench log (a file under <code>captures/</code>)</label>
+      <input type="text" id="log" placeholder="captures/2026-11-02-helix/h1.md">
+      <label for="notes">What happened</label>
+      <textarea id="notes" placeholder="What you saw, who else received the message, any side effects"></textarea>
+
+      <label for="record">Capability record this test verifies (optional)</label>
+      <select id="record"><option value="">— none —</option></select>
+      <div id="capfields" hidden>
+        <div class="row">
+          <div><label for="status">New status</label>
+            <select id="status"><option value="bench_verified">bench_verified (needs the bench log above)</option><option value="documented">documented (needs an evidence id)</option></select></div>
+          <div><label for="source">Evidence-register id</label><input type="text" id="source" placeholder="E-25"></div>
+        </div>
+        <div id="cmdfields" hidden>
+          <div class="row">
+            <div><label for="recipients">Other recipients checked</label><input type="text" id="recipients"></div>
+            <div><label for="sidefx">Side effects</label><input type="text" id="sidefx"></div>
+          </div>
+          <div class="values">
+            <p class="note">Wire message for each cue value, as the bench established it. Leave a row empty to keep what the rig file has.</p>
+            <div id="values"></div>
+          </div>
+        </div>
+        <div id="repfields" hidden>
+          <label for="path">Input path checked</label><input type="text" id="path" placeholder="USB (authoritative)">
+        </div>
+      </div>
+      <button class="primary" type="submit">Record result</button>
+      <div id="msg"></div>
+    </form>
+  </section>
+</main>
+<script>
+(function () {
+  const $ = (id) => document.getElementById(id);
+  let state = null, current = null;
+
+  async function load() {
+    const r = await fetch('/api/worksheet');
+    state = await r.json();
+    if (!r.ok) { $('detail').innerHTML = '<p class="bad">' + esc(state.error) + '</p>'; return; }
+    renderNav();
+    if (!current) select(state.tests[0].id); else select(current);
+  }
+  function esc(s) { return String(s ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+  function md(s) { return esc(s).replace(/`([^`]+)`/g, '<code>$1</code>').replace(/\*([^*]+)\*/g, '<em>$1</em>'); }
+
+  function renderNav() {
+    const done = new Set(state.results.filter(x => x.outcome === 'pass').map(x => x.test_id));
+    $('tests').innerHTML = state.tests.map(t =>
+      `<button type="button" data-id="${t.id}" class="${t.id === current ? 'active' : ''}"><span class="id">${t.id}</span>${esc(t.title)}${done.has(t.id) ? '<span class="done">✓</span>' : ''}</button>`).join('');
+    $('tests').querySelectorAll('button').forEach(b => b.onclick = () => select(b.dataset.id));
+    $('records').innerHTML = Object.entries(state.records).map(([k, v]) =>
+      `<div>${esc(k)} <span class="status ${v.status}">${v.status}</span></div>`).join('');
+    const sel = $('record');
+    sel.innerHTML = '<option value="">— none —</option>' + Object.entries(state.records).map(([k, v]) =>
+      `<option value="${esc(k)}">${esc(k)} (${v.kind}, ${v.status})</option>`).join('');
+  }
+
+  function select(id) {
+    if (id !== current) $('msg').textContent = '';
+    current = id;
+    const t = state.tests.find(x => x.id === id);
+    const past = state.results.filter(x => x.test_id === id);
+    $('detail').innerHTML = `<h3>${t.id} · ${esc(t.title)}</h3>
+      <p><strong>Method.</strong> ${md(t.method)}</p>
+      <p><strong>Pass when.</strong> ${md(t.passes)}</p>
+      <p><strong>Gates.</strong> ${esc(t.gates)}</p>
+      <p class="note">Isolate the device first: only the routes needed, volume low, lights safe. Watch every relevant port with an external monitor and send from an external tool (plan Section 10.2). Keep the bench log under <code>captures/</code>.</p>
+      ${past.length ? '<p class="note">Already logged: ' + past.map(p => `${p.date} ${p.outcome}`).join(', ') + '</p>' : ''}`;
+    $('form').hidden = false;
+    if (!$('date').value) $('date').value = new Date().toISOString().slice(0, 10);
+    renderNav();
+    $('record').onchange();
+  }
+
+  $('record').onchange = () => {
+    const rec = state.records[$('record').value];
+    $('capfields').hidden = !rec;
+    if (!rec) return;
+    $('cmdfields').hidden = rec.kind !== 'command';
+    $('repfields').hidden = rec.kind !== 'report';
+    if (rec.kind === 'command') {
+      $('values').innerHTML = rec.values.map(v => `<div class="row">
+        <div><label>${esc(v)}</label></div>
+        <div><select data-v="${esc(v)}" data-f="kind"><option value="">—</option><option>note_on</option><option>note_off</option><option>control_change</option><option>program_change</option></select></div>
+        <div><input type="text" inputmode="numeric" placeholder="data1" data-v="${esc(v)}" data-f="data1"></div>
+        <div><input type="text" inputmode="numeric" placeholder="data2" data-v="${esc(v)}" data-f="data2"></div>
+      </div>`).join('');
+    }
+  };
+
+  $('form').onsubmit = async (ev) => {
+    ev.preventDefault();
+    const body = { test_id: current, date: $('date').value, outcome: $('outcome').value,
+                   notes: $('notes').value, bench_log: $('log').value || null };
+    const key = $('record').value;
+    if (key) {
+      const rec = state.records[key];
+      const cap = { device: rec.device, kind: rec.kind, name: rec.name, status: $('status').value,
+                    source: $('source').value || null };
+      if (rec.kind === 'command') {
+        cap.other_recipients = $('recipients').value; cap.side_effects = $('sidefx').value;
+        const values = {};
+        rec.values.forEach(v => {
+          const get = f => $('values').querySelector(`[data-v="${v}"][data-f="${f}"]`).value.trim();
+          if (!get('kind') && !get('data1')) return;
+          const num = s => s === '' ? null : (/^\d+$/.test(s) ? Number(s) : s);
+          values[v] = { kind: get('kind'), data1: num(get('data1')), data2: num(get('data2')) };
+        });
+        if (Object.keys(values).length) cap.values = values;
+      } else {
+        cap.path_checked = $('path').value;
+      }
+      body.capability = cap;
+    }
+    const r = await fetch('/api/results', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+    const data = await r.json();
+    const m = $('msg');
+    if (r.ok) { m.className = 'ok'; m.textContent = 'Recorded. Wrote:\n' + data.written.join('\n'); $('notes').value = ''; await load(); }
+    else { m.className = 'bad'; m.textContent = 'Not recorded:\n' + data.error; }
+  };
+
+  load();
+})();
+</script>
+</body>
+</html>

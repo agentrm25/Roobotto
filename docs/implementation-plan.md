@@ -770,6 +770,7 @@ Real output requires explicit configuration *and* arming, not just leaving off `
 - `roobotto measure-latency`
 - `roobotto run --dry-run`
 - `roobotto ui` (the local web workbench, ADR-018; every screen calls the same functions as the commands above)
+- `roobotto bench list | show | record` (the CLI twin of the workbench's bench-worksheet screen)
 
 ### Dependencies
 
