@@ -30,7 +30,7 @@ Revise in place and bump the revision number; don't create copies.
 
 | TO | Title | Serves | Rev | Status |
 |---|---|---|---|---|
-| _none yet_ | | | | |
+| [TO-T-06](TO-T-06-doctor-and-devices.md) | First run of `doctor` and `devices list` on the Mac | T-06 (P0 bench check); prepares R-2, H-6, M-1 | 1 | ready |
 
 Status values: `draft` · `ready` · `executed` · `superseded`.
 

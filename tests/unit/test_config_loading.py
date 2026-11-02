@@ -14,7 +14,12 @@ EXAMPLES = ROOT / "examples"
 def test_examples_validate() -> None:
     report = validate_files([EXAMPLES])
     assert report.issues == []
-    assert {type(c).__name__ for c in report.configs.values()} == {"Song", "Rig", "Setlist"}
+    assert {type(c).__name__ for c in report.configs.values()} == {
+        "Song",
+        "Rig",
+        "Setlist",
+        "Ports",
+    }
 
 
 def test_committed_schemas_match_the_models() -> None:
@@ -29,7 +34,7 @@ def test_every_schema_is_exported(tmp_path: Path) -> None:
 
 def test_cli_validate_config_ok(capsys: pytest.CaptureFixture[str]) -> None:
     assert cli.main(["validate-config", str(EXAMPLES)]) == 0
-    assert "OK: 3 file(s) valid" in capsys.readouterr().out
+    assert "OK: 4 file(s) valid" in capsys.readouterr().out
 
 
 def test_cli_validate_config_reports_problems(
@@ -54,7 +59,7 @@ def test_cli_schemas_export_and_check(tmp_path: Path) -> None:
     ("text", "expected"),
     [
         ("kind: song\nkind: song\n", "duplicate key 'kind'"),
-        ("kind: toast\n", "must be one of rig, setlist, song"),
+        ("kind: toast\n", "must be one of ports, rig, setlist, song"),
         ("- a\n- b\n", "must contain a YAML mapping"),
         ("kind: [unclosed\n", "invalid YAML"),
         ("", "must contain a YAML mapping"),

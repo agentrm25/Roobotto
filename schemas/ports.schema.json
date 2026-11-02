@@ -1,0 +1,63 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "audio_input": {
+      "anyOf": [
+        {
+          "minLength": 1,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Audio Input"
+    },
+    "id": {
+      "pattern": "^[a-z][a-z0-9_]{0,63}$",
+      "title": "Id",
+      "type": "string"
+    },
+    "kind": {
+      "const": "ports",
+      "title": "Kind",
+      "type": "string"
+    },
+    "ports": {
+      "patternProperties": {
+        "^[a-z][a-z0-9_]{0,63}$": {
+          "anyOf": [
+            {
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "title": "Ports",
+      "type": "object"
+    },
+    "rig": {
+      "pattern": "^[a-z][a-z0-9_]{0,63}$",
+      "title": "Rig",
+      "type": "string"
+    },
+    "schema_version": {
+      "const": 0,
+      "title": "Schema Version",
+      "type": "integer"
+    }
+  },
+  "required": [
+    "kind",
+    "schema_version",
+    "id",
+    "rig"
+  ],
+  "title": "Ports",
+  "type": "object"
+}

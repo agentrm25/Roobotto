@@ -5,6 +5,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 
 from roobotto.config.loader import Config, Issue, load_config
+from roobotto.config.ports import Ports
 from roobotto.config.rig import Rig
 from roobotto.config.setlist import Setlist
 from roobotto.config.song import Song
@@ -161,6 +162,42 @@ def _check_advance_on_reports(report: Report) -> None:
                 )
 
 
+def _check_ports(report: Report) -> None:
+    """T-06: a ports file names ports of its rig, and every physical port of a physical rig."""
+    rigs = {c.id: c for c in report.configs.values() if isinstance(c, Rig)}
+    for path, cfg in report.configs.items():
+        if not isinstance(cfg, Ports):
+            continue
+        rig = rigs.get(cfg.rig)
+        if rig is None:
+            if rigs:
+                report.issues.append(
+                    Issue(str(path), "rig", f"no rig '{cfg.rig}' among the files given")
+                )
+            continue
+        known = {p.id: p for p in rig.ports}
+        for port_id in cfg.ports:
+            if port_id not in known:
+                report.issues.append(
+                    Issue(
+                        str(path),
+                        f"ports.{port_id}",
+                        f"'{port_id}' is not a port of rig '{rig.id}'",
+                    )
+                )
+        if rig.profile == "physical":
+            for port in rig.ports:
+                if port.transport != "mock" and not cfg.ports.get(port.id):
+                    report.issues.append(
+                        Issue(
+                            str(path),
+                            f"ports.{port.id}",
+                            f"physical port '{port.id}' ({port.transport}) needs a system port "
+                            "name; run `roobotto devices list` to see them",
+                        )
+                    )
+
+
 def validate_files(paths: Iterable[Path]) -> Report:
     report = Report()
     for path in expand(paths):
@@ -173,4 +210,5 @@ def validate_files(paths: Iterable[Path]) -> Report:
     _check_setlists(report)
     _check_cues_against_rig(report)
     _check_advance_on_reports(report)
+    _check_ports(report)
     return report

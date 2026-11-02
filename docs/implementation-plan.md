@@ -759,7 +759,7 @@ T-01 adds Python patterns to `.gitignore`: virtual environments (`.venv/`), byte
 Real output requires explicit configuration *and* arming, not just leaving off `--dry-run`. `measure-latency` accepts only bench_verified commands.
 
 - `roobotto doctor`
-- `roobotto devices list`
+- `roobotto devices list` and `roobotto devices ports-template <rig>` (writes the `local/ports.yaml` skeleton)
 - `roobotto midi-monitor`
 - `roobotto validate-config`
 - `roobotto schemas export`

@@ -15,9 +15,12 @@ Versions and licenses below come from PyPI metadata; confirm against `uv.lock` w
 | mido | 1.3.3 | MIT | MIDI messages and port access (approved by the owner, 17 Oct 2026) |
 | python-rtmidi | 1.5.8 | MIT; bundles RtMidi under a modified MIT license | Real MIDI ports for mido; prebuilt wheels for macOS and Linux |
 | packaging (via mido) | 26.3 | Apache-2.0 OR BSD-2-Clause | Version parsing used by mido |
+| sounddevice | 0.5.6 | MIT | Audio device listing (T-06) and capture (T-07); loaded lazily, needs the PortAudio library (bundled in the macOS wheel) (approved by the owner, 2 Nov 2026) |
+| cffi (via sounddevice) | 2.1.1 | MIT-0 | C bindings used by sounddevice |
+| pycparser (via cffi) | 3.12 | BSD-3-Clause | C parser used by cffi |
 
-The remaining runtime dependencies (numpy, scipy, librosa, soundfile, sounddevice, python-osc,
-rich, textual, matplotlib, mir_eval) are added by the task cards that first need them, per
+The remaining runtime dependencies (numpy, scipy, librosa, soundfile, python-osc,
+matplotlib, mir_eval) are added by the task cards that first need them, per
 `docs/implementation-plan.md` Section 11. Nothing constructs the mido port backend by default,
 and no test opens a real port.
 

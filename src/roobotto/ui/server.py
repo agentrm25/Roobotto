@@ -6,6 +6,7 @@ endpoint calls the same function as the matching ``roobotto bench`` command.
 """
 
 import json
+from collections.abc import Sequence
 from dataclasses import asdict
 from http import HTTPStatus
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
@@ -13,6 +14,8 @@ from importlib import resources
 from pathlib import Path
 from typing import Any
 
+from roobotto.devices import doctor as doctor_mod
+from roobotto.devices import probe
 from roobotto.ui import worksheet
 
 LOOPBACK = "127.0.0.1"
@@ -27,10 +30,21 @@ class Workbench(ThreadingHTTPServer):
     daemon_threads = True
     allow_reuse_address = False
 
-    def __init__(self, address: tuple[str, int], doc: Path, rig: Path) -> None:
+    def __init__(
+        self,
+        address: tuple[str, int],
+        doc: Path,
+        rig: Path,
+        config_paths: Sequence[Path] = (),
+        system: probe.System | None = None,
+        cwd: Path | None = None,
+    ) -> None:
         super().__init__(address, Handler)
         self.doc = doc
         self.rig = rig
+        self.config_paths = list(config_paths) or [rig]
+        self.system = system or probe.live_system()
+        self.cwd = cwd or Path.cwd()
 
     @property
     def url(self) -> str:
@@ -90,6 +104,31 @@ class Handler(BaseHTTPRequestHandler):
                 self._json(HTTPStatus.OK, self._worksheet())
             except worksheet.WorksheetError as exc:
                 self._json(HTTPStatus.INTERNAL_SERVER_ERROR, {"error": str(exc)})
+        elif path == "/api/devices":
+            self._json(HTTPStatus.OK, probe.list_devices(self.server.system).as_dict())
+        elif path == "/api/doctor":
+            try:
+                checks = doctor_mod.run_doctor(
+                    self.server.config_paths, self.server.system, self.server.cwd
+                )
+            except Exception as exc:  # the page shows the error instead of hanging
+                self._json(HTTPStatus.INTERNAL_SERVER_ERROR, {"error": f"doctor failed: {exc!r}"})
+                return
+            self._json(
+                HTTPStatus.OK,
+                {
+                    "paths": [str(p) for p in self.server.config_paths],
+                    "checks": [c.as_dict() for c in checks],
+                    "ready": not doctor_mod.failed(checks),
+                },
+            )
+        elif path == "/api/ports-template":
+            try:
+                text = probe.ports_template(self.server.rig, probe.list_devices(self.server.system))
+            except ValueError as exc:
+                self._json(HTTPStatus.BAD_REQUEST, {"error": str(exc)})
+                return
+            self._send(HTTPStatus.OK, text.encode("utf-8"), "text/plain; charset=utf-8")
         else:
             self._json(HTTPStatus.NOT_FOUND, {"error": "not found"})
 
@@ -118,8 +157,18 @@ class Handler(BaseHTTPRequestHandler):
         self._json(HTTPStatus.OK, {"written": [str(p) for p in written]})
 
 
-def make_server(doc: Path, rig: Path, port: int = 0, host: str = LOOPBACK) -> Workbench:
+def make_server(
+    doc: Path,
+    rig: Path,
+    port: int = 0,
+    host: str = LOOPBACK,
+    config_paths: Sequence[Path] = (),
+    system: probe.System | None = None,
+    cwd: Path | None = None,
+) -> Workbench:
     """Bind the workbench. Any host other than 127.0.0.1 is refused (ADR-018)."""
     if host != LOOPBACK:
         raise ValueError(f"the workbench binds to {LOOPBACK} only, not '{host}'")
-    return Workbench((host, port), doc=doc, rig=rig)
+    return Workbench(
+        (host, port), doc=doc, rig=rig, config_paths=config_paths, system=system, cwd=cwd
+    )
