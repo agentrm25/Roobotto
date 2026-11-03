@@ -1,5 +1,5 @@
 """Command-line entry point: ``validate-config``, ``schemas export``, ``run --dry-run``, ``bench``,
-``devices``, ``doctor``, ``synth`` and ``ui``."""
+``devices``, ``doctor``, ``synth``, ``replay`` and ``ui``."""
 
 import argparse
 import json
@@ -14,6 +14,7 @@ from roobotto.config.validate import validate_files
 from roobotto.devices import doctor as doctor_mod
 from roobotto.devices import probe
 from roobotto.engine.dry_run import DryRunError, dry_run
+from roobotto.eval import replay as replay_mod
 from roobotto.eval import synth
 from roobotto.ui import worksheet
 from roobotto.ui.server import make_server
@@ -225,6 +226,36 @@ def _synth_render(args: argparse.Namespace) -> int:
     return 0
 
 
+def _replay_features(args: argparse.Namespace) -> int:
+    feeds = [f for f in (args.feeds or "").split(",") if f] or None
+    drop: dict[str, list[tuple[float, float]]] = {}
+    for spec in args.drop:
+        try:
+            feed, start, end = spec.split(":")
+            drop.setdefault(feed, []).append((float(start), float(end)))
+        except ValueError:
+            print(f"--drop '{spec}' must be feed:start_s:end_s", file=sys.stderr)
+            return 2
+    try:
+        result = replay_mod.replay_take(
+            Path(args.take), block=args.block, feeds=feeds, beats=args.beats, drop=drop or None
+        )
+    except (replay_mod.MissingFeedError, OSError, ValueError) as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        return 1
+    if args.out:
+        with Path(args.out).open("w", encoding="utf-8") as fh:
+            for record in result.records:
+                fh.write(json.dumps(record, sort_keys=True) + "\n")
+    feeds_text = ", ".join(result.feeds)
+    print(f"take {result.take}: feeds {feeds_text}, block {result.block} @ {result.rate} Hz")
+    print(
+        f"{len(result.records)} records; health {json.dumps(result.health_summary, sort_keys=True)}"
+    )
+    print(f"output hash {result.output_hash}")
+    return 0
+
+
 def _ui(args: argparse.Namespace) -> int:
     server = make_server(
         doc=Path(args.doc),
@@ -359,6 +390,29 @@ def build_parser() -> argparse.ArgumentParser:
         "--rate", type=int, default=synth.DEFAULT_SAMPLE_RATE, help="sample rate (default 48000)"
     )
     render.set_defaults(func=_synth_render)
+
+    replay = sub.add_parser("replay", help="causal replay of takes on the simulated clock (T-10)")
+    replay_sub = replay.add_subparsers(dest="replay_command", required=True)
+    feats = replay_sub.add_parser("features", help="onset, chroma and input health, block by block")
+    feats.add_argument("take", help="take folder with manifest.json and annotations.json")
+    feats.add_argument(
+        "--block", type=int, default=replay_mod.DEFAULT_BLOCK, help="block size in samples"
+    )
+    feats.add_argument("--feeds", help="comma-separated feeds (default: all in the take)")
+    feats.add_argument(
+        "--beats",
+        choices=["none", "oracle"],
+        default="none",
+        help="beat source for beat-synchronous chroma",
+    )
+    feats.add_argument(
+        "--drop",
+        action="append",
+        default=[],
+        help="feed:start_s:end_s, blocks withheld; repeatable",
+    )
+    feats.add_argument("--out", help="write the records as JSONL")
+    feats.set_defaults(func=_replay_features)
 
     ui = sub.add_parser("ui", help="open the local web workbench (127.0.0.1 only, ADR-018)")
     ui.add_argument(
