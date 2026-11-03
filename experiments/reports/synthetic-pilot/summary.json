@@ -1,0 +1,46 @@
+{
+ "commit": "f46e7593c70bfe1c949b2ea59fb70dcae85e431c",
+ "config_hash": "5998974c14f4ccbf4fdd5b17d94b760906eb0ac5bec0887acd53654976a46464",
+ "dirty": false,
+ "label": "synthetic",
+ "manifests": {
+  "synthetic_anthem/drift": "d015e45446956044d4291d72c6bca715fe62b9366ceea845e5d674d717717203",
+  "synthetic_anthem/dropout": "e2ad5a9f4dc3d832b2c46e7e083cf7bb6fe61493a5a81ba323b9f4cdc2451e7e",
+  "synthetic_anthem/extend": "4a353308cd0021b1bdeddc6b185d0aa54eec7b898a91f93e1bd92ff986ba96c2",
+  "synthetic_anthem/nominal": "65c2aa1e407036b71c8a621da44a3d2cdf1237de306ec2775e2d682db1037565",
+  "synthetic_anthem/repeat": "d36b9aa6400e219773347c40c0769c020d2c60de83e3266868af5932d052947f",
+  "synthetic_anthem/skip": "06486667057a60c856f43f51fb392fc4e4e37143884fdbd4ae86c7e5411aa585",
+  "synthetic_seven/drift": "27a9405944512d14fcd7ec977141f26cbbbb20b10c4b7b6d56e260c4abc6db0e",
+  "synthetic_seven/dropout": "a403a4e8d122112ae34a4ae4bdfae3fdba05d18ba0e1e1af2bc3e21c48f44d21",
+  "synthetic_seven/extend": "4b7a5757e96540fc1a2add6ee84e70e327a42f433fc2ce0a8b444dcf4b071148",
+  "synthetic_seven/nominal": "8034c4a3e410490956dadb7481dd4fa6899d6b020d39637614acf6b4a3c1e190",
+  "synthetic_seven/repeat": "541dc32c6ddbfd6431e210315a7c2a82ca93675becd8b6888d3fa885d75b7615",
+  "synthetic_seven/skip": "5b32c61244076ce33a812d4c7b259e89136cb7eda98447f537f7183373e77db2",
+  "synthetic_waltz/drift": "ab91702a86e949fc97221d64949b078ab5688eabcf3bab6e4e1a6c49db38e86f",
+  "synthetic_waltz/dropout": "242bcde5836fa1b90a468feeae86f026cc1053b02e9b70fa315e28ca3bc6d935",
+  "synthetic_waltz/extend": "f7721081b0c262c781566743cf1f0457146383c49ad9975772fbb3d0f8ff3769",
+  "synthetic_waltz/nominal": "464940f20836b027c3630330ac0be8b50ba7f536bf7cd2e43bfecc9a9470f25e",
+  "synthetic_waltz/repeat": "3f535c590f780ba8c737078d20d6757a6b8ef472b9aced31c0a478397cbedb07",
+  "synthetic_waltz/skip": "2460bf70c2176baae66c5aaef55ab551f26935d3819acba8591211232cfc9bd0"
+ },
+ "methods": [
+  "B0",
+  "B1",
+  "B3"
+ ],
+ "protocol": "synthetic_pilot",
+ "reduced_scope": [
+  "B2: deferred, not built. Linear online DTW against the reference take (P1; the pymatchmaker cross-check with it)",
+  "B4: deferred, not built. Bar-grid follower on isolated feeds, audio only (the synthetic corpus has no room mic, so B3 here already runs on isolated feeds)",
+  "B5: deferred, not built. B4 plus existing MIDI and controller events",
+  "B6: deferred, not built. B5 plus simulated performer presses at 50% of boundaries",
+  "Features: drum-band pattern and vocal activity (T-10 P1) are deferred; onset and chroma only.",
+  "Ablations: with and without the duration prior, and with and without the transition graph, are deferred.",
+  "Takes: synthetic only; no pilot take has been recorded (WP5)."
+ ],
+ "rows": 270,
+ "take_types": [
+  "synthetic"
+ ],
+ "title": "Synthetic pilot benchmark"
+}

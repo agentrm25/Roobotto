@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="720" height="320" font-family="sans-serif" font-size="12">
+<rect width="720" height="320" fill="white"/>
+<text x="60" y="24" font-size="16">Production-equivalent accuracy (coverage of the right cues) per beat, clean takes</text>
+<line x1="60" y1="260" x2="700" y2="260" stroke="black"/>
+<line x1="60" y1="40" x2="60" y2="260" stroke="black"/>
+<text x="52" y="44" text-anchor="end">0.988</text>
+<text x="52" y="260" text-anchor="end">0</text>
+<rect x="79.2" y="53.9" width="89.6" height="206.1" fill="#2a4d8f"/>
+<text x="124.0" y="49.9" text-anchor="middle">0.925</text>
+<text x="124.0" y="276" text-anchor="middle">B0</text>
+<rect x="207.2" y="51.3" width="89.6" height="208.7" fill="#2a4d8f"/>
+<text x="252.0" y="47.3" text-anchor="middle">0.937</text>
+<text x="252.0" y="276" text-anchor="middle">B1</text>
+<rect x="335.2" y="40.0" width="89.6" height="220.0" fill="#2a4d8f"/>
+<text x="380.0" y="36.0" text-anchor="middle">0.988</text>
+<text x="380.0" y="276" text-anchor="middle">B3 chords+bass</text>
+<rect x="463.2" y="40.4" width="89.6" height="219.6" fill="#2a4d8f"/>
+<text x="508.0" y="36.4" text-anchor="middle">0.986</text>
+<text x="508.0" y="276" text-anchor="middle">B3 chords</text>
+<rect x="591.2" y="43.4" width="89.6" height="216.6" fill="#2a4d8f"/>
+<text x="636.0" y="39.4" text-anchor="middle">0.973</text>
+<text x="636.0" y="276" text-anchor="middle">B3 bass</text>
+</svg>
