@@ -57,6 +57,11 @@ adapter. There is no override (I-1, I-2, ADR-009).
   at milestone 4: the only configuration in which tracker evidence schedules anything. Decorative
   cues reach the mock adapter, standard cues wait for M5, critical cues are refused (I-14), and
   the summary's `fired_physical` is always 0.
+- `roobotto run --dry-run --replay <take> --milestone N` (T-14) is the same path with the
+  engine's milestone setting chosen for the demo: at 5, standard cues may fire on tracker
+  evidence, to the mock adapter only. The milestone is a per-run setting, never config, and the
+  dry run is unarmed with the MIDI adapter disabled whatever the milestone. Critical cues are
+  refused at every milestone (I-14).
 
 The supervisor also refuses a send when:
 

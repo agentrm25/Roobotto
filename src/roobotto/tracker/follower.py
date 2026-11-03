@@ -146,6 +146,8 @@ class BarGridFollower:
     _edges: list[tuple[int, int, float]] = field(init=False)
     _ref: dict[str, Array] = field(init=False)
     _has_ref: npt.NDArray[np.bool_] = field(init=False)
+    _ref_rows: dict[str, list[list[int]]] = field(init=False)
+    _starts: npt.NDArray[np.bool_] = field(init=False)
     _session: str = field(init=False)
     _seq: int = 0
     _last_beat_ns: int | None = None
@@ -197,27 +199,49 @@ class BarGridFollower:
         self._within = np.zeros(n)
         # Reference chroma per state and feed. The observation that arrives with beat k is the
         # chroma of the interval that just ended, so a state at beat k is matched against the
-        # reference of the beat before it. At a section's first beat the predecessor is unknown
-        # (it depends on the path), so that state carries no evidence of its own.
+        # reference of the beat before it. A section's first beat has one predecessor per way
+        # into it (the last beat of every cell the grid lets move there); it is matched against
+        # the best of them, which is what makes the follower sure at a boundary it just heard.
+        predecessors: dict[int, list[tuple[str, int, int]]] = {}
+        for i, p in enumerate(self.positions):
+            bar, beat = p.position.bar, p.beat
+            if beat > 1:
+                predecessors[i] = [(p.position.section, bar, beat - 1)]
+            elif bar > 1:
+                predecessors[i] = [(p.position.section, bar - 1, bpb)]
+            else:
+                predecessors[i] = []
+        for p in self.positions:
+            if p.beat == bpb:
+                for t in self.grid.successors(p.position):
+                    if t.to is not None and t.to.bar == 1:
+                        j = self._index[BeatPosition(t.to, 1)]
+                        predecessors[j].append((p.position.section, p.position.bar, bpb))
+        self._starts = np.asarray(
+            [p.position.bar == 1 and p.beat == 1 for p in self.positions], dtype=bool
+        )
         self._ref = {}
+        self._ref_rows: dict[str, list[list[int]]] = {}
         self._has_ref = np.ones(n, dtype=bool)
         for feed in cfg.feeds:
-            rows = np.zeros((n, 12))
-            for i, p in enumerate(self.positions):
-                bar, beat = p.position.bar, p.beat
-                if beat > 1:
-                    prev = (bar, beat - 1)
-                elif bar > 1:
-                    prev = (bar - 1, bpb)
-                else:
+            table: list[Array] = []
+            index: list[list[int]] = []
+            seen: dict[tuple[str, int, int], int] = {}
+            for i in range(n):
+                mine: list[int] = []
+                for key in predecessors[i]:
+                    if key not in seen:
+                        row = np.asarray(self.reference.chroma(feed, *key))
+                        if not row.any():
+                            continue
+                        seen[key] = len(table)
+                        table.append(row)
+                    mine.append(seen[key])
+                index.append(mine)
+                if not mine:
                     self._has_ref[i] = False
-                    continue
-                rows[i] = np.asarray(
-                    self.reference.chroma(feed, p.position.section, prev[0], prev[1])
-                )
-                if not rows[i].any():
-                    self._has_ref[i] = False  # the reference has nothing for this beat
-            self._ref[feed] = rows
+            self._ref[feed] = np.asarray(table) if table else np.zeros((0, 12))
+            self._ref_rows[feed] = index
         # Start: the first beat of the song, tempo at the nominal bin.
         self.belief = np.zeros((n, cfg.tempo_bins))
         nominal_bin = int(
@@ -252,9 +276,20 @@ class BarGridFollower:
             observed = np.asarray(chroma.get(feed, [0.0] * 12), dtype=np.float64)
             if float(observed.sum()) <= 0.0:
                 continue
-            distances = np.asarray([_cosine_distance(observed, row) for row in self._ref[feed]])
-            feed_like = np.exp(-distances / self.config.temperature)
-            feed_like[~self._has_ref] = float(np.mean(feed_like[self._has_ref]))
+            table = self._ref[feed]
+            row_like = np.exp(
+                -np.asarray([_cosine_distance(observed, row) for row in table])
+                / self.config.temperature
+            )
+            feed_like = np.asarray(
+                [max(row_like[k] for k in rows) if rows else 0.0 for rows in self._ref_rows[feed]]
+            )
+            # A state with no reference, or a section start reached by a jump the grid does
+            # not model, carries no evidence of its own: it gets the average likelihood, and a
+            # section start keeps the better of that and its matched predecessors.
+            neutral = float(np.mean(feed_like[self._has_ref])) if self._has_ref.any() else 1.0
+            feed_like[~self._has_ref] = neutral
+            feed_like[self._starts] = np.maximum(feed_like[self._starts], neutral)
             like *= feed_like
         tempo_like = np.exp(-0.5 * ((np.log(self.bins_bpm) - math.log(bpm)) / 0.03) ** 2)
         self.belief = self.belief * like[:, None] * tempo_like[None, :]
@@ -297,15 +332,16 @@ class BarGridFollower:
             key = (p.position.section, p.position.visit, p.position.bar)
             by_cell[key] = by_cell.get(key, 0.0) + float(by_state[i])
         ranked = sorted(by_cell.items(), key=lambda kv: (-kv[1], kv[0]))[: cfg.top_hypotheses]
+        probs = [round(min(p, 1.0), 6) for _, p in ranked]
+        excess = round(sum(probs) - 1.0, 6)
+        if excess > 0 and probs:
+            probs[0] = round(probs[0] - excess, 6)  # rounding never claims more than certainty
+        ranked = [(key, prob) for (key, _), prob in zip(ranked, probs, strict=True)]
         top_i = int(np.argmax(by_state))
         top = self.positions[top_i]
         period_ns = round(60.0 / bpm * NS)
-        beats_left = self.song.beats_per_bar - top.beat
-        next_downbeat = (
-            beat_ns + (beats_left + (0 if beats_left else self.song.beats_per_bar)) * period_ns
-        )
-        if beats_left == 0:
-            next_downbeat = beat_ns + period_ns
+        # The beat after the bar's last one is the next downbeat: bpb - beat + 1 beats away.
+        next_downbeat = beat_ns + (self.song.beats_per_bar - top.beat + 1) * period_ns
         successors: dict[str, float] = {}
         boundary: dict[str, Any] | None = None
         exits = [t for t in self.grid.successors(top.position) if t.kind != "bar"]
@@ -328,10 +364,7 @@ class BarGridFollower:
             "t_ns": now_ns,
             "song": {"id": self.song.id, "p": 1.0},
             "mode": mode,
-            "hypotheses": [
-                {"section": s, "visit": v, "bar": b, "p": round(min(p, 1.0), 6)}
-                for (s, v, b), p in ranked
-            ],
+            "hypotheses": [{"section": s, "visit": v, "bar": b, "p": p} for (s, v, b), p in ranked],
             "beat": {
                 "phase": round(min(max((now_ns - beat_ns) / period_ns, 0.0), 0.999999), 6),
                 "tempo_bpm": round(bpm, 3),

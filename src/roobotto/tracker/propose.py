@@ -18,8 +18,10 @@ from typing import Any
 from roobotto.engine.clock import SimClock
 from roobotto.engine.dry_run import go_press
 from roobotto.engine.inputs import OperatorIn
-from roobotto.engine.show import EngineSettings, load_show
+from roobotto.engine.show import EngineSettings, ShowConfig, load_show
 from roobotto.engine.spine import Runner, Spine
+from roobotto.engine.trace import TraceWriter
+from roobotto.record.jsonl import JsonlLog
 from roobotto.tracker.follower import FollowerResult
 
 NS = 1_000_000_000
@@ -48,13 +50,25 @@ class Proposal:
         }
 
 
-def propose_cues(result: FollowerResult, config_paths: Sequence[Path]) -> Proposal:
-    show = load_show(config_paths, EngineSettings(performance="follower", milestone=4))
+def drive(
+    result: FollowerResult,
+    show: ShowConfig,
+    *,
+    run_id: str = "follower",
+    log: JsonlLog | None = None,
+) -> Spine:
+    """Select the song, press GO once at the annotated song start, switch to ASSISTED, enable
+    tracker authority at the first state, then feed every ``MusicalState`` at its time. The
+    spine is unarmed in whatever profile the show has; a mock profile means nothing can reach
+    hardware."""
     if result.song.id not in show.songs:
-        raise ValueError(f"song '{result.song.id}' is not in the config at {config_paths}")
+        raise ValueError(f"song '{result.song.id}' is not in the show config")
     spine = Spine(show)
     clock = SimClock(0)
-    runner = Runner.in_memory(spine, clock, run_id="follower")
+    if log is None:
+        runner = Runner.in_memory(spine, clock, run_id=run_id)
+    else:
+        runner = Runner(spine, clock, trace=TraceWriter(None, spine.header()), log=log)
     runner.submit(OperatorIn(t_ns=0, action="select_song", value=result.song.id))
     runner.submit(OperatorIn(t_ns=0, action="set_mode", value="assisted"))
     start = result.song_start_ns
@@ -71,6 +85,14 @@ def propose_cues(result: FollowerResult, config_paths: Sequence[Path]) -> Propos
             enabled = True
     last = result.states[-1].t_ns if result.states else start
     runner.run_until(last + 2 * NS)
+    return spine
+
+
+def propose_cues(
+    result: FollowerResult, config_paths: Sequence[Path], *, milestone: int = 4
+) -> Proposal:
+    show = load_show(config_paths, EngineSettings(performance="follower", milestone=milestone))
+    spine = drive(result, show)
     records = list(spine.records)
     entered = [str(r["section"]) for r in records if r["type"] == "visit"]
     attempts = [r for r in records if r["type"] == "output_attempt"]
