@@ -10,6 +10,7 @@ from roobotto.config.rig import DeviceCapability, Rig
 from roobotto.config.setlist import Setlist
 from roobotto.config.song import Cue, Song
 from roobotto.eval.annotations import Annotations, TakeManifest
+from roobotto.eval.benchmark import Protocol
 from roobotto.messages import (
     CueOccurrence,
     Decision,
@@ -36,6 +37,7 @@ SCHEMAS: dict[str, type[BaseModel]] = {
     "song_instance_record": SongInstanceRecord,
     "annotations": Annotations,
     "take_manifest": TakeManifest,
+    "protocol": Protocol,
 }
 
 

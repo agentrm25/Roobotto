@@ -374,12 +374,13 @@ def run_follower(
     *,
     config: FollowerConfig | None = None,
     block: int = DEFAULT_BLOCK,
+    drop: Mapping[str, Sequence[tuple[float, float]]] | None = None,
 ) -> FollowerResult:
     """Replay the take (as-captured streams), drive the PLL from the drum feed and the follower
     from the listening feeds' beat chroma, and score the top hypothesis per beat."""
     cfg = config or FollowerConfig()
     feeds = [BEAT_FEED, *[f for f in cfg.feeds if f != BEAT_FEED]]
-    run = replay_take(folder, block=block, feeds=feeds)
+    run = replay_take(folder, block=block, feeds=feeds, drop=drop)
     song = run.song
     annotations = run.annotations
     start_s = annotations.beats[0].at_s

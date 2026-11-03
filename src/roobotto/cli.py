@@ -1,5 +1,5 @@
 """Command-line entry point: ``validate-config``, ``schemas export``, ``run --dry-run``, ``bench``,
-``devices``, ``doctor``, ``synth``, ``replay`` and ``ui``."""
+``devices``, ``doctor``, ``synth``, ``replay``, ``benchmark`` and ``ui``."""
 
 import argparse
 import json
@@ -14,6 +14,7 @@ from roobotto.config.validate import validate_files
 from roobotto.devices import doctor as doctor_mod
 from roobotto.devices import probe
 from roobotto.engine.dry_run import DryRunError, dry_run
+from roobotto.eval import benchmark as benchmark_mod
 from roobotto.eval import replay as replay_mod
 from roobotto.eval import synth
 from roobotto.tracker import baselines, follower, propose
@@ -343,6 +344,28 @@ def _replay_follow(args: argparse.Namespace) -> int:
     return 0
 
 
+def _benchmark(args: argparse.Namespace) -> int:
+    try:
+        protocol = benchmark_mod.load_protocol(Path(args.protocol))
+        result = benchmark_mod.run_benchmark(
+            protocol, repo=Path.cwd(), out_dir=Path(args.out) if args.out else None
+        )
+    except (
+        benchmark_mod.BenchmarkError,
+        synth.SynthError,
+        follower.FollowerError,
+        OSError,
+        ValueError,
+    ) as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        return 1
+    label = str(result.summary["label"]).upper()
+    takes = len(result.summary["manifests"])
+    print(f"{protocol.title} [{label}]: {len(result.rows)} result rows over {takes} takes")
+    print(f"wrote {result.out_dir / 'report.md'}, results.csv, summary.json and plots")
+    return 0
+
+
 def _ui(args: argparse.Namespace) -> int:
     server = make_server(
         doc=Path(args.doc),
@@ -529,6 +552,13 @@ def build_parser() -> argparse.ArgumentParser:
     )
     follow.add_argument("--out", help="write score, states and proposals as JSON")
     follow.set_defaults(func=_replay_follow)
+
+    bench_cmd = sub.add_parser(
+        "benchmark", help="run a protocol over the corpus; write CSV, report and plots (T-13)"
+    )
+    bench_cmd.add_argument("protocol", help="protocol YAML (see experiments/protocols/)")
+    bench_cmd.add_argument("--out", help="output folder (default: the protocol's `out`)")
+    bench_cmd.set_defaults(func=_benchmark)
 
     ui = sub.add_parser("ui", help="open the local web workbench (127.0.0.1 only, ADR-018)")
     ui.add_argument(

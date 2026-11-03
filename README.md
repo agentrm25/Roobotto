@@ -29,6 +29,7 @@ uv run roobotto synth render examples/songs/*.yaml --out recordings/synthetic   
 uv run roobotto replay features recordings/synthetic/synthetic_anthem/nominal --beats oracle   # causal features, block by block
 uv run roobotto replay baseline recordings/synthetic/synthetic_anthem/drift --method B1   # score a baseline
 uv run roobotto replay follow recordings/synthetic/synthetic_anthem/skip --reference recordings/synthetic/synthetic_anthem/nominal --propose examples   # the follower
+uv run roobotto benchmark experiments/protocols/synthetic-pilot.yaml   # every method over the corpus: CSV, report, plots
 ```
 
 The stack is Python 3.12 with uv (ADR-002). The code is licensed Apache-2.0 (ADR-001).

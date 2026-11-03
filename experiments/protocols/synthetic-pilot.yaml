@@ -1,0 +1,26 @@
+# Benchmark protocol for the synthetic corpus (T-13). Synthetic results never count as evidence
+# that following is feasible; the report says so on every page. The pilot protocol for the real
+# takes is written when WP5 delivers them, with label: pilot and the recordings under
+# recordings/ (never committed).
+kind: protocol
+schema_version: 0
+id: synthetic_pilot
+title: Synthetic pilot benchmark
+label: synthetic
+corpus:
+  root: recordings/synthetic
+  synthesize: { songs: examples/songs, sample_rate: 48000 }   # render here if the takes are missing
+  songs: all
+  takes: all
+reference: nominal
+block: 512
+methods: [B0, B1, B3]
+feed_subsets:
+  B3:
+    - [chords, bass]
+    - [chords]
+    - [bass]
+fault_injections:
+  - { id: drums_lost_20_30, drop: { drums: [[20.0, 30.0]] } }
+  - { id: chords_lost_40_52, drop: { chords: [[40.0, 52.0]] } }
+out: experiments/reports/synthetic-pilot

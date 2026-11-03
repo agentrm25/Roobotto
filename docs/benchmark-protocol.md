@@ -1,6 +1,8 @@
 # Benchmark protocol
 
-> Stub. To be filled from `implementation-plan.md` Section 9 (the decisive experiment): capture specification, ground truth, methods, metrics, adversarial tests, and gates.
+> Section 9 of `implementation-plan.md` (the decisive experiment) is the authority for capture,
+> ground truth, methods, metrics, adversarial tests and gates. This file says what the tooling
+> built so far does and how to run it.
 
 Gates are proposed targets, not current capability. Synthetic results never count as
 evidence that following is feasible.
@@ -83,3 +85,30 @@ ASSISTED, tracker authority on, one GO at the annotated song start): proposals m
 scheduler, decision gate and output supervisor. Nothing can reach hardware; the summary reports
 `fired_physical` so a reader can check it is 0. See E-37 for the synthetic results and E-38 for
 why section-entry cues expire on tracker evidence while bar-counted cues meet the gate.
+
+## The benchmark command (T-13)
+
+`roobotto benchmark <protocol.yaml> [--out folder]` runs every method in the protocol over the
+corpus and writes, into the protocol's `out` folder: `results.csv` (one row per method, feed
+subset, take and fault injection, with every score field, `streams: as-captured` and
+`idealized: false`), `report.md`, three SVG plots (accuracy by method, boundary timing,
+production-equivalent coverage), `summary.json` (commit, config hash, manifest hashes, reduced
+scope) and `timing.csv` (wall-clock per run, kept apart from the results because it measures the
+machine, not the method).
+
+A protocol (`experiments/protocols/*.yaml`, schema `protocol`) names the corpus root (take
+folders `<song>/<take>/`, optionally rendered from song files when missing), which take is the
+reference per song, the block size, the methods, the feed subsets per method and the fault
+injections (blocks of a feed withheld for an interval). Audio never goes in git: the corpus root
+lives under `recordings/`.
+
+The report has: provenance (commit, config hash over the protocol and song files, manifest
+hashes); the method x feed-subset matrix and a per-take table; fault-injection deltas;
+assistance accounting (every method here is told one boundary, the song start, by annotation;
+B5 and B6 are not built); failure examples; a reduced-scope section listing every deferred
+method, feature and ablation; and the streams rule. A corpus with any synthetic take is labeled
+SYNTHETIC on the first line: synthetic results never count as evidence that following is
+feasible. The pilot protocol is written when WP5 delivers the takes, with `label: pilot`.
+
+Plots are SVG written by the tool itself; no plotting library is a dependency yet. Reports are
+byte-for-byte reproducible on one machine (`timing.csv` aside).

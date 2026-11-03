@@ -1,0 +1,228 @@
+{
+  "$defs": {
+    "Corpus": {
+      "additionalProperties": false,
+      "properties": {
+        "root": {
+          "minLength": 1,
+          "title": "Root",
+          "type": "string"
+        },
+        "songs": {
+          "anyOf": [
+            {
+              "const": "all",
+              "type": "string"
+            },
+            {
+              "items": {
+                "pattern": "^[a-z][a-z0-9_]{0,63}$",
+                "type": "string"
+              },
+              "type": "array"
+            }
+          ],
+          "default": "all",
+          "title": "Songs"
+        },
+        "synthesize": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Synthesize"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "takes": {
+          "anyOf": [
+            {
+              "const": "all",
+              "type": "string"
+            },
+            {
+              "items": {
+                "minLength": 1,
+                "type": "string"
+              },
+              "type": "array"
+            }
+          ],
+          "default": "all",
+          "title": "Takes"
+        }
+      },
+      "required": [
+        "root"
+      ],
+      "title": "Corpus",
+      "type": "object"
+    },
+    "FaultInjection": {
+      "additionalProperties": false,
+      "properties": {
+        "drop": {
+          "additionalProperties": {
+            "items": {
+              "maxItems": 2,
+              "minItems": 2,
+              "prefixItems": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "number"
+                }
+              ],
+              "type": "array"
+            },
+            "type": "array"
+          },
+          "propertyNames": {
+            "minLength": 1
+          },
+          "title": "Drop",
+          "type": "object"
+        },
+        "id": {
+          "pattern": "^[a-z][a-z0-9_]{0,63}$",
+          "title": "Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "drop"
+      ],
+      "title": "FaultInjection",
+      "type": "object"
+    },
+    "Synthesize": {
+      "additionalProperties": false,
+      "properties": {
+        "sample_rate": {
+          "default": 48000,
+          "minimum": 1,
+          "title": "Sample Rate",
+          "type": "integer"
+        },
+        "songs": {
+          "minLength": 1,
+          "title": "Songs",
+          "type": "string"
+        }
+      },
+      "required": [
+        "songs"
+      ],
+      "title": "Synthesize",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "block": {
+      "default": 512,
+      "minimum": 1,
+      "title": "Block",
+      "type": "integer"
+    },
+    "corpus": {
+      "$ref": "#/$defs/Corpus"
+    },
+    "fault_injections": {
+      "items": {
+        "$ref": "#/$defs/FaultInjection"
+      },
+      "title": "Fault Injections",
+      "type": "array"
+    },
+    "feed_subsets": {
+      "additionalProperties": {
+        "items": {
+          "items": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "type": "array"
+      },
+      "propertyNames": {
+        "const": "B3"
+      },
+      "title": "Feed Subsets",
+      "type": "object"
+    },
+    "follower": {
+      "additionalProperties": true,
+      "title": "Follower",
+      "type": "object"
+    },
+    "id": {
+      "pattern": "^[a-z][a-z0-9_]{0,63}$",
+      "title": "Id",
+      "type": "string"
+    },
+    "kind": {
+      "const": "protocol",
+      "title": "Kind",
+      "type": "string"
+    },
+    "label": {
+      "enum": [
+        "synthetic",
+        "pilot",
+        "study"
+      ],
+      "title": "Label",
+      "type": "string"
+    },
+    "methods": {
+      "items": {
+        "enum": [
+          "B0",
+          "B1",
+          "B3"
+        ],
+        "type": "string"
+      },
+      "title": "Methods",
+      "type": "array"
+    },
+    "out": {
+      "minLength": 1,
+      "title": "Out",
+      "type": "string"
+    },
+    "reference": {
+      "default": "nominal",
+      "minLength": 1,
+      "title": "Reference",
+      "type": "string"
+    },
+    "schema_version": {
+      "const": 0,
+      "title": "Schema Version",
+      "type": "integer"
+    },
+    "title": {
+      "minLength": 1,
+      "title": "Title",
+      "type": "string"
+    }
+  },
+  "required": [
+    "kind",
+    "schema_version",
+    "id",
+    "title",
+    "label",
+    "corpus",
+    "out"
+  ],
+  "title": "Protocol",
+  "type": "object"
+}
