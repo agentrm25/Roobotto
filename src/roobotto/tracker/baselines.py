@@ -7,7 +7,7 @@ with no content observation at all. Both are expected to fail in known ways: B0 
 drift, B1 on skips and repeats. They exist to be beaten.
 """
 
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
 from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import Any
@@ -118,13 +118,19 @@ def _b1(
 
 
 def run_baseline(
-    method: str, folder: Path, *, block: int = DEFAULT_BLOCK, feed: str = "drums"
+    method: str,
+    folder: Path,
+    *,
+    block: int = DEFAULT_BLOCK,
+    feed: str = "drums",
+    drop: Mapping[str, Sequence[tuple[float, float]]] | None = None,
 ) -> BaselineResult:
     """Run one baseline on a take. Both are anchored at the annotated song start (the first
-    annotated beat), as the plan allows for B0 and B1."""
+    annotated beat), as the plan allows for B0 and B1. ``drop`` withholds a feed's blocks in the
+    given intervals (fault injection)."""
     if method not in METHODS:
         raise ValueError(f"unknown method '{method}'; choose from {', '.join(METHODS)}")
-    run = replay_take(folder, block=block, feeds=[feed])
+    run = replay_take(folder, block=block, feeds=[feed], drop=drop)
     song = run.song
     annotations = run.annotations
     start_s = annotations.beats[0].at_s

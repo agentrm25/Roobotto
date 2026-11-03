@@ -769,7 +769,7 @@ Real output requires explicit configuration *and* arming, not just leaving off `
 - `roobotto replay features <take>` (block-by-block causal replay on the simulated clock, T-10)
 - `roobotto replay baseline <take> --method B0|B1` (score a baseline against the take's annotations, T-11)
 - `roobotto replay follow <take> --reference <take>... [--propose <config>]` (the bar-grid follower, scored; proposals through the real engine in the mock profile, T-12)
-- `roobotto benchmark`
+- `roobotto benchmark <protocol.yaml>` (methods x feed subsets x fault injections over the corpus; CSV, Markdown report, SVG plots; T-13)
 - `roobotto measure-latency`
 - `roobotto run --dry-run`
 - `roobotto ui` (the local web workbench, ADR-018; every screen calls the same functions as the commands above)
