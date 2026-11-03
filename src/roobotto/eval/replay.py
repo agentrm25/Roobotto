@@ -18,6 +18,7 @@ from typing import Any
 import numpy as np
 import numpy.typing as npt
 
+from roobotto.config.song import Song
 from roobotto.engine.clock import SimClock
 from roobotto.engine.guard import FutureReadGuard, GuardedSeries
 from roobotto.engine.hashing import decision_hash
@@ -235,6 +236,7 @@ class RunResult:
     output_hash: str
     health_summary: dict[str, dict[str, float]]
     annotations: Annotations
+    song: Song
 
 
 def _oracle_beats(annotations: Annotations) -> list[int]:
@@ -276,7 +278,7 @@ def replay_take(
     run.finish()
     return RunResult(
         take.manifest.take, tuple(chosen), run.rate, block, run.records, run.output_hash,
-        run.health_summary, take.annotations,
+        run.health_summary, take.annotations, take.song(),
     )  # fmt: skip
 
 

@@ -16,6 +16,7 @@ from roobotto.devices import probe
 from roobotto.engine.dry_run import DryRunError, dry_run
 from roobotto.eval import replay as replay_mod
 from roobotto.eval import synth
+from roobotto.tracker import baselines
 from roobotto.ui import worksheet
 from roobotto.ui.server import make_server
 
@@ -256,6 +257,43 @@ def _replay_features(args: argparse.Namespace) -> int:
     return 0
 
 
+def _replay_baseline(args: argparse.Namespace) -> int:
+    if args.method not in baselines.METHODS:
+        print(
+            f"unknown method '{args.method}'; choose from {', '.join(baselines.METHODS)}",
+            file=sys.stderr,
+        )
+        return 2
+    try:
+        result = baselines.run_baseline(
+            args.method, Path(args.take), block=args.block, feed=args.feed
+        )
+    except (replay_mod.MissingFeedError, synth.SynthError, OSError, ValueError) as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        return 1
+    if args.out:
+        Path(args.out).write_text(
+            json.dumps(
+                {
+                    "method": result.method,
+                    "take": result.take,
+                    "score": result.score.as_dict(),
+                    "output_hash": result.output_hash,
+                    "estimates": [e.as_dict() for e in result.estimates],
+                },
+                indent=1,
+            )
+            + "\n",
+            encoding="utf-8",
+        )
+    print(f"{result.method} on {result.take}: {len(result.estimates)} estimates")
+    for key, value in result.score.as_dict().items():
+        if key != "method":
+            print(f"  {key}: {value}")
+    print(f"output hash {result.output_hash}")
+    return 0
+
+
 def _ui(args: argparse.Namespace) -> int:
     server = make_server(
         doc=Path(args.doc),
@@ -413,6 +451,17 @@ def build_parser() -> argparse.ArgumentParser:
     )
     feats.add_argument("--out", help="write the records as JSONL")
     feats.set_defaults(func=_replay_features)
+    base = replay_sub.add_parser("baseline", help="run a baseline (B0, B1) on a take and score it")
+    base.add_argument("take", help="take folder")
+    base.add_argument(
+        "--method", required=True, help="B0 (fixed timeline) or B1 (onset PLL bar counting)"
+    )
+    base.add_argument("--block", type=int, default=replay_mod.DEFAULT_BLOCK)
+    base.add_argument(
+        "--feed", default="drums", help="feed for the onset envelope (default: drums)"
+    )
+    base.add_argument("--out", help="write score and estimates as JSON")
+    base.set_defaults(func=_replay_baseline)
 
     ui = sub.add_parser("ui", help="open the local web workbench (127.0.0.1 only, ADR-018)")
     ui.add_argument(

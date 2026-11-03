@@ -21,8 +21,9 @@ from typing import Any, Literal
 import numpy as np
 import numpy.typing as npt
 import soundfile as sf  # pyright: ignore[reportMissingTypeStubs]
+import yaml
 
-from roobotto.config.loader import load_config
+from roobotto.config.loader import load_config, model_to_dict
 from roobotto.config.song import Section, Song
 from roobotto.eval.annotations import (
     Annotations,
@@ -121,6 +122,11 @@ def _nominal_visits(song: Song) -> list[PlannedVisit]:
         if section.ends:
             break
     return visits
+
+
+def nominal_visits(song: Song) -> list[tuple[str, int, int]]:
+    """The nominal path as ``(section, visit, bars)``: every section once, in order, to the end."""
+    return [(v.section, v.visit, v.bars) for v in _renumber(_nominal_visits(song))]
 
 
 def _renumber(visits: Sequence[PlannedVisit]) -> tuple[PlannedVisit, ...]:
@@ -497,6 +503,10 @@ def write_take(take: Take, folder: Path) -> Path:
     (folder / "annotations.json").write_text(
         take.annotations.model_dump_json(indent=1) + "\n", encoding="utf-8"
     )
+    # The song the take was made from, so a take folder is self-contained for scoring.
+    (folder / "song.yaml").write_text(
+        yaml.safe_dump(model_to_dict(take.song), sort_keys=False), encoding="utf-8"
+    )
     manifest = TakeManifest(
         kind="take_manifest",
         schema_version=0,
@@ -528,6 +538,16 @@ class LoadedTake:
     folder: Path
     manifest: TakeManifest
     annotations: Annotations
+
+    def song(self) -> Song:
+        """The song file written beside the take."""
+        model, issues = load_config(self.folder / "song.yaml")
+        if issues or not isinstance(model, Song):
+            raise SynthError(
+                f"take {self.manifest.take} has no valid song.yaml:\n"
+                + "\n".join(str(i) for i in issues)
+            )
+        return model
 
     def stream(self, name: str) -> Array:
         file = self.manifest.channels.get(name)  # pyright: ignore[reportArgumentType]
