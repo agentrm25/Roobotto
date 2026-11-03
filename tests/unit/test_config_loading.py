@@ -34,7 +34,7 @@ def test_every_schema_is_exported(tmp_path: Path) -> None:
 
 def test_cli_validate_config_ok(capsys: pytest.CaptureFixture[str]) -> None:
     assert cli.main(["validate-config", str(EXAMPLES)]) == 0
-    assert "OK: 4 file(s) valid" in capsys.readouterr().out
+    assert "OK: 6 file(s) valid" in capsys.readouterr().out
 
 
 def test_cli_validate_config_reports_problems(

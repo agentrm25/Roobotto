@@ -25,6 +25,7 @@ uv run roobotto ui                       # the local workbench in your browser (
 uv run roobotto bench list               # the same bench worksheet, on the command line
 uv run roobotto doctor                   # is this machine and config ready? each failure names a fix
 uv run roobotto devices list             # MIDI ports and audio devices this machine sees; opens nothing
+uv run roobotto synth render examples/songs/*.yaml --out recordings/synthetic   # synthetic takes + exact annotations
 ```
 
 The stack is Python 3.12 with uv (ADR-002). The code is licensed Apache-2.0 (ADR-001).

@@ -1,5 +1,5 @@
 """Command-line entry point: ``validate-config``, ``schemas export``, ``run --dry-run``, ``bench``,
-``devices``, ``doctor`` and ``ui``."""
+``devices``, ``doctor``, ``synth`` and ``ui``."""
 
 import argparse
 import json
@@ -14,6 +14,7 @@ from roobotto.config.validate import validate_files
 from roobotto.devices import doctor as doctor_mod
 from roobotto.devices import probe
 from roobotto.engine.dry_run import DryRunError, dry_run
+from roobotto.eval import synth
 from roobotto.ui import worksheet
 from roobotto.ui.server import make_server
 
@@ -197,6 +198,33 @@ def _doctor(args: argparse.Namespace) -> int:
     return 1 if doctor_mod.failed(checks) else 0
 
 
+def _synth_list(args: argparse.Namespace) -> int:
+    print("variations: " + ", ".join(synth.VARIATIONS))
+    print("streams: " + ", ".join(synth.STREAMS))
+    return 0
+
+
+def _synth_render(args: argparse.Namespace) -> int:
+    variations = list(args.variation) or list(synth.VARIATIONS)
+    unknown = [v for v in variations if v not in synth.VARIATIONS]
+    if unknown:
+        print(
+            f"unknown variation(s): {', '.join(unknown)}; see `roobotto synth list`",
+            file=sys.stderr,
+        )
+        return 2
+    out = Path(args.out)
+    for song in args.songs:
+        try:
+            folders = synth.render_song_file(Path(song), out, variations, sample_rate=args.rate)
+        except (synth.SynthError, OSError) as exc:
+            print(f"error: {exc}", file=sys.stderr)
+            return 1
+        for folder in folders:
+            print(f"wrote {folder}: {synth.dumps(synth.describe(folder))}")
+    return 0
+
+
 def _ui(args: argparse.Namespace) -> int:
     server = make_server(
         doc=Path(args.doc),
@@ -308,6 +336,29 @@ def build_parser() -> argparse.ArgumentParser:
     )
     doctor.add_argument("--json", action="store_true")
     doctor.set_defaults(func=_doctor)
+
+    synth_cmd = sub.add_parser("synth", help="synthetic takes with exact annotations (T-08)")
+    synth_sub = synth_cmd.add_subparsers(dest="synth_command", required=True)
+    synth_sub.add_parser("list", help="the take variations and streams").set_defaults(
+        func=_synth_list
+    )
+    render = synth_sub.add_parser("render", help="render song files to FLAC feeds plus annotations")
+    render.add_argument("songs", nargs="+", help="song YAML files")
+    render.add_argument(
+        "--out",
+        required=True,
+        help="output folder (use recordings/synthetic; audio is never committed)",
+    )
+    render.add_argument(
+        "--variation",
+        action="append",
+        default=[],
+        help="one of `synth list`; repeatable (default: all)",
+    )
+    render.add_argument(
+        "--rate", type=int, default=synth.DEFAULT_SAMPLE_RATE, help="sample rate (default 48000)"
+    )
+    render.set_defaults(func=_synth_render)
 
     ui = sub.add_parser("ui", help="open the local web workbench (127.0.0.1 only, ADR-018)")
     ui.add_argument(

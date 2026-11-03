@@ -4,3 +4,5 @@ id: synthetic_set
 title: Synthetic Set
 entries:
   - { song: synthetic_anthem, program_change: 0 }
+  - { song: synthetic_waltz, program_change: 1 }
+  - { song: synthetic_seven, program_change: 2 }

@@ -1,0 +1,40 @@
+# Synthetic song for tests and demos: 7/8, no vocals until late, a solo that can run long and a
+# skip-prone second verse. Not a real song; no private data.
+kind: song
+schema_version: 0
+id: synthetic_seven
+title: Synthetic Seven
+tempo: { nominal: 150, range: [138, 162] }
+meter: 7/8
+
+sections:
+  - { id: riff,    bars: 8 }
+  - { id: verse1,  bars: 8, advance_on: { snapshot: 1 } }
+  - { id: verse2,  bars: 8, model_as: verse1, advance_on: { snapshot: 1 } }
+  - { id: solo,    bars: 8, extendable: { unit: 4, prob: 0.5 }, advance_on: { snapshot: 3 } }
+  - { id: chorus,  bars: 8, vocal: true, repeat: { max: 3, prob: 0.3 }, advance_on: { snapshot: 2 } }
+  - { id: ending,  bars: 4, ends: true, advance_on: { snapshot: 4 } }
+
+graph:
+  - { from: solo,   to: solo,   prob: 0.5 }
+  - { from: chorus, to: chorus, prob: 0.3 }
+
+cues:
+  - id: solo_build
+    at: { section: solo, bar: 1, beat: 1, offset_beats: -3 }
+    class: decorative
+    state: { mvp.scene: solo_build }
+    on_miss: skip
+
+  - id: chorus_scene
+    at: { section: chorus, bar: 1, beat: 1 }
+    class: standard
+    state: { mvp.scene: chorus, aum.layer: chorus_pad }
+    on_miss: { fire_late_within_beats: 1 }
+
+  - id: solo_lead
+    at: { section: solo, bar: 1, beat: 1 }
+    class: critical
+    state: { guitar.snapshot: lead }
+    requires: { posterior_min: 0.98, corroborate_by: [mapped_snapshot, footswitch], within_bars: 2 }
+    on_uncertain: ask

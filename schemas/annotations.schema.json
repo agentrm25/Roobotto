@@ -1,0 +1,453 @@
+{
+  "$defs": {
+    "Bar": {
+      "additionalProperties": false,
+      "properties": {
+        "bar": {
+          "minimum": 1,
+          "title": "Bar",
+          "type": "integer"
+        },
+        "section": {
+          "pattern": "^[a-z][a-z0-9_]{0,63}$",
+          "title": "Section",
+          "type": "string"
+        },
+        "start_s": {
+          "title": "Start S",
+          "type": "number"
+        },
+        "start_sample": {
+          "minimum": 0,
+          "title": "Start Sample",
+          "type": "integer"
+        },
+        "visit": {
+          "minimum": 1,
+          "title": "Visit",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "section",
+        "visit",
+        "bar",
+        "start_s",
+        "start_sample"
+      ],
+      "title": "Bar",
+      "type": "object"
+    },
+    "Beat": {
+      "additionalProperties": false,
+      "properties": {
+        "at_s": {
+          "title": "At S",
+          "type": "number"
+        },
+        "bar": {
+          "minimum": 1,
+          "title": "Bar",
+          "type": "integer"
+        },
+        "beat": {
+          "minimum": 1,
+          "title": "Beat",
+          "type": "integer"
+        },
+        "bpm": {
+          "title": "Bpm",
+          "type": "number"
+        },
+        "section": {
+          "pattern": "^[a-z][a-z0-9_]{0,63}$",
+          "title": "Section",
+          "type": "string"
+        },
+        "visit": {
+          "minimum": 1,
+          "title": "Visit",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "section",
+        "visit",
+        "bar",
+        "beat",
+        "at_s",
+        "bpm"
+      ],
+      "title": "Beat",
+      "type": "object"
+    },
+    "CueInstant": {
+      "additionalProperties": false,
+      "description": "When a song cue was meant to land in this take, per visit of its section.",
+      "properties": {
+        "at_s": {
+          "title": "At S",
+          "type": "number"
+        },
+        "id": {
+          "pattern": "^[a-z][a-z0-9_]{0,63}$",
+          "title": "Id",
+          "type": "string"
+        },
+        "section": {
+          "pattern": "^[a-z][a-z0-9_]{0,63}$",
+          "title": "Section",
+          "type": "string"
+        },
+        "visit": {
+          "minimum": 1,
+          "title": "Visit",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "id",
+        "section",
+        "visit",
+        "at_s"
+      ],
+      "title": "CueInstant",
+      "type": "object"
+    },
+    "Deviation": {
+      "additionalProperties": false,
+      "properties": {
+        "at_s": {
+          "title": "At S",
+          "type": "number"
+        },
+        "detail": {
+          "minLength": 1,
+          "title": "Detail",
+          "type": "string"
+        },
+        "kind": {
+          "enum": [
+            "repeat",
+            "skip",
+            "extend"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "modeled": {
+          "title": "Modeled",
+          "type": "boolean"
+        },
+        "section": {
+          "pattern": "^[a-z][a-z0-9_]{0,63}$",
+          "title": "Section",
+          "type": "string"
+        },
+        "visit": {
+          "minimum": 1,
+          "title": "Visit",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "kind",
+        "at_s",
+        "section",
+        "visit",
+        "modeled",
+        "detail"
+      ],
+      "title": "Deviation",
+      "type": "object"
+    },
+    "Dropout": {
+      "additionalProperties": false,
+      "properties": {
+        "end_s": {
+          "title": "End S",
+          "type": "number"
+        },
+        "start_s": {
+          "title": "Start S",
+          "type": "number"
+        },
+        "stream": {
+          "enum": [
+            "drums",
+            "bass",
+            "chords",
+            "vocal",
+            "room",
+            "guitar",
+            "helix"
+          ],
+          "title": "Stream",
+          "type": "string"
+        }
+      },
+      "required": [
+        "stream",
+        "start_s",
+        "end_s"
+      ],
+      "title": "Dropout",
+      "type": "object"
+    },
+    "SyncBurst": {
+      "additionalProperties": false,
+      "properties": {
+        "at_s": {
+          "title": "At S",
+          "type": "number"
+        },
+        "streams": {
+          "items": {
+            "enum": [
+              "drums",
+              "bass",
+              "chords",
+              "vocal",
+              "room",
+              "guitar",
+              "helix"
+            ],
+            "type": "string"
+          },
+          "title": "Streams",
+          "type": "array"
+        }
+      },
+      "required": [
+        "at_s",
+        "streams"
+      ],
+      "title": "SyncBurst",
+      "type": "object"
+    },
+    "TempoKnot": {
+      "additionalProperties": false,
+      "properties": {
+        "at_s": {
+          "title": "At S",
+          "type": "number"
+        },
+        "bpm": {
+          "title": "Bpm",
+          "type": "number"
+        }
+      },
+      "required": [
+        "at_s",
+        "bpm"
+      ],
+      "title": "TempoKnot",
+      "type": "object"
+    },
+    "Visit": {
+      "additionalProperties": false,
+      "properties": {
+        "bars": {
+          "minimum": 1,
+          "title": "Bars",
+          "type": "integer"
+        },
+        "deviation": {
+          "anyOf": [
+            {
+              "enum": [
+                "repeat",
+                "skip",
+                "extend"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Deviation"
+        },
+        "end_s": {
+          "title": "End S",
+          "type": "number"
+        },
+        "section": {
+          "pattern": "^[a-z][a-z0-9_]{0,63}$",
+          "title": "Section",
+          "type": "string"
+        },
+        "start_s": {
+          "title": "Start S",
+          "type": "number"
+        },
+        "visit": {
+          "minimum": 1,
+          "title": "Visit",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "section",
+        "visit",
+        "bars",
+        "start_s",
+        "end_s"
+      ],
+      "title": "Visit",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "bars": {
+      "items": {
+        "$ref": "#/$defs/Bar"
+      },
+      "title": "Bars",
+      "type": "array"
+    },
+    "beats": {
+      "items": {
+        "$ref": "#/$defs/Beat"
+      },
+      "title": "Beats",
+      "type": "array"
+    },
+    "cues": {
+      "items": {
+        "$ref": "#/$defs/CueInstant"
+      },
+      "title": "Cues",
+      "type": "array"
+    },
+    "deviations": {
+      "items": {
+        "$ref": "#/$defs/Deviation"
+      },
+      "title": "Deviations",
+      "type": "array"
+    },
+    "diverges_at_s": {
+      "anyOf": [
+        {
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Diverges At S"
+    },
+    "dropouts": {
+      "items": {
+        "$ref": "#/$defs/Dropout"
+      },
+      "title": "Dropouts",
+      "type": "array"
+    },
+    "duration_s": {
+      "title": "Duration S",
+      "type": "number"
+    },
+    "kind": {
+      "const": "annotations",
+      "title": "Kind",
+      "type": "string"
+    },
+    "sample_rate": {
+      "minimum": 1,
+      "title": "Sample Rate",
+      "type": "integer"
+    },
+    "schema_version": {
+      "const": 0,
+      "title": "Schema Version",
+      "type": "integer"
+    },
+    "song": {
+      "pattern": "^[a-z][a-z0-9_]{0,63}$",
+      "title": "Song",
+      "type": "string"
+    },
+    "sync_bursts": {
+      "items": {
+        "$ref": "#/$defs/SyncBurst"
+      },
+      "title": "Sync Bursts",
+      "type": "array"
+    },
+    "synthetic": {
+      "title": "Synthetic",
+      "type": "boolean"
+    },
+    "take": {
+      "minLength": 1,
+      "title": "Take",
+      "type": "string"
+    },
+    "tempo": {
+      "items": {
+        "$ref": "#/$defs/TempoKnot"
+      },
+      "title": "Tempo",
+      "type": "array"
+    },
+    "twin_of": {
+      "anyOf": [
+        {
+          "minLength": 1,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Twin Of"
+    },
+    "variation": {
+      "anyOf": [
+        {
+          "minLength": 1,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Variation"
+    },
+    "verified": {
+      "default": false,
+      "title": "Verified",
+      "type": "boolean"
+    },
+    "visits": {
+      "items": {
+        "$ref": "#/$defs/Visit"
+      },
+      "title": "Visits",
+      "type": "array"
+    }
+  },
+  "required": [
+    "kind",
+    "schema_version",
+    "take",
+    "song",
+    "synthetic",
+    "sample_rate",
+    "duration_s",
+    "sync_bursts",
+    "visits",
+    "bars",
+    "beats",
+    "tempo"
+  ],
+  "title": "Annotations",
+  "type": "object"
+}

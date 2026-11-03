@@ -9,6 +9,7 @@ from roobotto.config.ports import Ports
 from roobotto.config.rig import DeviceCapability, Rig
 from roobotto.config.setlist import Setlist
 from roobotto.config.song import Cue, Song
+from roobotto.eval.annotations import Annotations, TakeManifest
 from roobotto.messages import (
     CueOccurrence,
     Decision,
@@ -33,6 +34,8 @@ SCHEMAS: dict[str, type[BaseModel]] = {
     "output_attempt": OutputAttempt,
     "fired_ledger_record": FiredLedgerRecord,
     "song_instance_record": SongInstanceRecord,
+    "annotations": Annotations,
+    "take_manifest": TakeManifest,
 }
 
 

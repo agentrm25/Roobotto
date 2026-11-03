@@ -25,6 +25,10 @@ BASE: Docs = {
     "rig": _load("rig.template.yaml"),
     "setlist": _load("setlist.yaml"),
 }
+# The fixture carries one song, so the setlist keeps only that song's entry.
+BASE["setlist"]["entries"] = [
+    e for e in BASE["setlist"]["entries"] if e["song"] == "synthetic_anthem"
+]
 
 
 def _by_id(items: list[Doc], item_id: str, key: str = "id") -> Doc:
