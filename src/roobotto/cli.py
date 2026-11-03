@@ -16,7 +16,7 @@ from roobotto.devices import probe
 from roobotto.engine.dry_run import DryRunError, dry_run
 from roobotto.eval import replay as replay_mod
 from roobotto.eval import synth
-from roobotto.tracker import baselines
+from roobotto.tracker import baselines, follower, propose
 from roobotto.ui import worksheet
 from roobotto.ui.server import make_server
 
@@ -294,6 +294,55 @@ def _replay_baseline(args: argparse.Namespace) -> int:
     return 0
 
 
+def _replay_follow(args: argparse.Namespace) -> int:
+    feeds = tuple(f for f in (args.feeds or "").split(",") if f) or follower.DEFAULT_FEEDS
+    config = follower.FollowerConfig(feeds=feeds, temperature=args.temperature)
+    try:
+        reference = follower.build_reference(
+            [Path(p) for p in args.reference], feeds=feeds, block=args.block
+        )
+        result = follower.run_follower(Path(args.take), reference, config=config, block=args.block)
+        proposal = (
+            propose.propose_cues(result, [Path(p) for p in args.propose]) if args.propose else None
+        )
+    except (
+        follower.FollowerError,
+        replay_mod.MissingFeedError,
+        synth.SynthError,
+        OSError,
+        ValueError,
+    ) as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        return 1
+    feeds_text = ", ".join(feeds)
+    print(f"follower on {result.annotations.take}: {len(result.states)} states, feeds {feeds_text}")
+    for key, value in result.score.as_dict().items():
+        if key != "method":
+            print(f"  {key}: {value}")
+    print(f"output hash {result.output_hash}")
+    if proposal is not None:
+        print("proposals through the real gate (mock profile, unarmed):")
+        for key, value in proposal.summary().items():
+            print(f"  {key}: {value}")
+    if args.out:
+        Path(args.out).write_text(
+            json.dumps(
+                {
+                    "take": result.annotations.take,
+                    "config": config.as_dict(),
+                    "score": result.score.as_dict(),
+                    "output_hash": result.output_hash,
+                    "states": [s.model_dump(mode="json") for s in result.states],
+                    "proposals": proposal.summary() if proposal else None,
+                },
+                indent=1,
+            )
+            + "\n",
+            encoding="utf-8",
+        )
+    return 0
+
+
 def _ui(args: argparse.Namespace) -> int:
     server = make_server(
         doc=Path(args.doc),
@@ -462,6 +511,24 @@ def build_parser() -> argparse.ArgumentParser:
     )
     base.add_argument("--out", help="write score and estimates as JSON")
     base.set_defaults(func=_replay_baseline)
+    follow = replay_sub.add_parser(
+        "follow", help="run the bar-grid follower (B3/B4) on a take and score it"
+    )
+    follow.add_argument("take", help="take folder")
+    follow.add_argument(
+        "--reference", action="append", required=True, help="reference take folder(s); repeatable"
+    )
+    follow.add_argument("--feeds", help="listening feeds, comma-separated (default: chords,bass)")
+    follow.add_argument("--temperature", type=float, default=follower.FollowerConfig().temperature)
+    follow.add_argument("--block", type=int, default=replay_mod.DEFAULT_BLOCK)
+    follow.add_argument(
+        "--propose",
+        action="append",
+        default=[],
+        help="config paths; route the states through the real engine in the mock profile",
+    )
+    follow.add_argument("--out", help="write score, states and proposals as JSON")
+    follow.set_defaults(func=_replay_follow)
 
     ui = sub.add_parser("ui", help="open the local web workbench (127.0.0.1 only, ADR-018)")
     ui.add_argument(

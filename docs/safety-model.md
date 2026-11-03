@@ -53,6 +53,10 @@ adapter. There is no override (I-1, I-2, ADR-009).
   `roobotto.features` or `roobotto.eval` schedules or fires anything (AGENTS.md rule 3); their
   outputs reach the engine only through the tracker's `MusicalState`, which the decision gate
   treats as tracker evidence (I-14).
+- `roobotto replay follow --propose` (T-12) runs the real engine in the mock profile, unarmed,
+  at milestone 4: the only configuration in which tracker evidence schedules anything. Decorative
+  cues reach the mock adapter, standard cues wait for M5, critical cues are refused (I-14), and
+  the summary's `fired_physical` is always 0.
 
 The supervisor also refuses a send when:
 
