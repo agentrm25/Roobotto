@@ -18,9 +18,10 @@ Versions and licenses below come from PyPI metadata; confirm against `uv.lock` w
 | sounddevice | 0.5.6 | MIT | Audio device listing (T-06) and capture (T-07); loaded lazily, needs the PortAudio library (bundled in the macOS wheel) (approved by the owner, 2 Nov 2026) |
 | cffi (via sounddevice) | 2.1.1 | MIT-0 | C bindings used by sounddevice |
 | pycparser (via cffi) | 3.12 | BSD-3-Clause | C parser used by cffi |
+| numpy | 2.5.4 | BSD-3-Clause (with 0BSD, MIT, Zlib and CC0-1.0 parts) | Signal arrays for the synthetic renderer (T-08), later features and replay (approved by the owner, 3 Nov 2026) |
+| soundfile | 0.14.0 | BSD-3-Clause; the wheel bundles libsndfile 1.2.2 (LGPL-2.1, used as a shared library, unmodified) | FLAC read and write for takes (T-08, T-07) (approved by the owner, 3 Nov 2026) |
 
-The remaining runtime dependencies (numpy, scipy, librosa, soundfile, python-osc,
-matplotlib, mir_eval) are added by the task cards that first need them, per
+The remaining runtime dependencies (scipy, librosa, python-osc, matplotlib, mir_eval) are added by the task cards that first need them, per
 `docs/implementation-plan.md` Section 11. Nothing constructs the mido port backend by default,
 and no test opens a real port.
 

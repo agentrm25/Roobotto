@@ -1,0 +1,134 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "bit_depth": {
+      "enum": [
+        16,
+        24
+      ],
+      "title": "Bit Depth",
+      "type": "integer"
+    },
+    "channels": {
+      "additionalProperties": {
+        "minLength": 1,
+        "type": "string"
+      },
+      "propertyNames": {
+        "enum": [
+          "drums",
+          "bass",
+          "chords",
+          "vocal",
+          "room",
+          "guitar",
+          "helix"
+        ]
+      },
+      "title": "Channels",
+      "type": "object"
+    },
+    "consent": {
+      "enum": [
+        "synthetic",
+        "given",
+        "none"
+      ],
+      "title": "Consent",
+      "type": "string"
+    },
+    "devices": {
+      "items": {
+        "minLength": 1,
+        "type": "string"
+      },
+      "title": "Devices",
+      "type": "array"
+    },
+    "kind": {
+      "const": "take_manifest",
+      "title": "Kind",
+      "type": "string"
+    },
+    "render": {
+      "anyOf": [
+        {
+          "additionalProperties": true,
+          "type": "object"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Render"
+    },
+    "sample_rate": {
+      "minimum": 1,
+      "title": "Sample Rate",
+      "type": "integer"
+    },
+    "schema_version": {
+      "const": 0,
+      "title": "Schema Version",
+      "type": "integer"
+    },
+    "sha256": {
+      "additionalProperties": {
+        "minLength": 1,
+        "type": "string"
+      },
+      "propertyNames": {
+        "minLength": 1
+      },
+      "title": "Sha256",
+      "type": "object"
+    },
+    "song": {
+      "pattern": "^[a-z][a-z0-9_]{0,63}$",
+      "title": "Song",
+      "type": "string"
+    },
+    "take": {
+      "minLength": 1,
+      "title": "Take",
+      "type": "string"
+    },
+    "take_type": {
+      "enum": [
+        "synthetic",
+        "rehearsal",
+        "bench"
+      ],
+      "title": "Take Type",
+      "type": "string"
+    },
+    "variation": {
+      "anyOf": [
+        {
+          "minLength": 1,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Variation"
+    }
+  },
+  "required": [
+    "kind",
+    "schema_version",
+    "take",
+    "song",
+    "take_type",
+    "sample_rate",
+    "bit_depth",
+    "channels",
+    "sha256",
+    "consent"
+  ],
+  "title": "TakeManifest",
+  "type": "object"
+}

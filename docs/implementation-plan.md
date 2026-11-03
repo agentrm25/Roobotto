@@ -765,6 +765,7 @@ Real output requires explicit configuration *and* arming, not just leaving off `
 - `roobotto schemas export`
 - `roobotto record --session`
 - `roobotto annotate import`
+- `roobotto synth list | render` (synthetic takes with exact annotations, T-08; audio goes under `recordings/`)
 - `roobotto replay`
 - `roobotto benchmark`
 - `roobotto measure-latency`
