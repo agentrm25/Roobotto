@@ -40,3 +40,22 @@ no made-up frames, and a feed absent from the take is an error, never silence.
 Leakage controls checked by tests: the first N blocks give the same records whether or not the
 rest of the take exists; causal twins give identical records before `diverges_at_s`; replay and a
 simulated live run over the same blocks give the same output hash (E-34).
+
+## Baselines B0 and B1 (T-11)
+
+`roobotto replay baseline <take> --method B0|B1 [--feed drums] [--out score.json]` runs a
+baseline on a take and scores it against the annotations.
+
+- **B0, fixed timeline:** from the annotated song start, at the song's nominal tempo, count
+  beats along the nominal path. What a click track would give you.
+- **B1, bar counting:** the same count, but beats come from the onset PLL on the drum feed
+  (E-36), limited to the song's tempo range. No content observation.
+
+Both are anchored at the annotated song start, as the plan allows. Scores (`roobotto.eval.score`):
+section and visit accuracy, bar accuracy and production-equivalent accuracy per annotated beat
+(the estimate in force at mid-beat); mean tempo error ratio and octave errors; signed boundary
+timing error (median and p95 of the first entry into each annotated visit), with deviations
+counted as unexpected boundaries; accuracy before and after the first deviation; and recovery
+in bars, when it happens. On the synthetic corpus B0 fails under drift and B1 fails on skips and
+repeats (E-35); both still have to run on the pilot takes before the T-11 P0 check is complete.
+B2 (online DTW) is P1 and not built.
