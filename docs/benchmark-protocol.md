@@ -124,3 +124,25 @@ clock time. `experiments/reports/dry-run-demo/` holds the transcript and log fro
 the MVP scene change lands within a beat of the annotated chorus downbeat and goes to the mock
 adapter; the critical cue is refused (I-14). A run on a pilot take is reviewed locally and never
 committed.
+
+## Capture (T-07)
+
+`roobotto record session <session.yaml> --out <take> [--seconds N]` captures from the devices
+in the session file to one FLAC per mapped channel (48 kHz, 24-bit by default), writes
+`blocks.jsonl` (per block: device, block and sample index, ADC time, callback time, overflow and
+underflow flags, receive time), `midi.jsonl` (every message on every input port, listen only),
+`capture.json` (the operator-entered clock configuration, sync-burst marks, frame counts) and
+`manifest.json` (song, take type, channel map, devices, sample rate, SHA-256 hashes, consent).
+A rehearsal take needs `consent: given`. The audio callback only copies, stamps and enqueues.
+
+`roobotto record validate <take> [--reference stream] [--tolerance-ms 1]` finds the shared
+marker clicks in every stream, measures each stream's offset against the reference at every
+marker, fits a linear drift, reports offset, drift (ppm), the largest residual after that model
+and the largest raw offset, and marks invalid intervals: dropped blocks (the driver's ADC clock
+moved further than the samples it delivered), flagged blocks, and markers whose residual breaks
+tolerance. Intervals the validator flags are excluded from analysis and reported.
+
+`roobotto record correct <take>` writes drift-corrected copies under `corrected/` with their own
+manifest marked idealized. Follower results are reported on as-captured streams only; a result
+on corrected streams is labeled idealized and needs a separate check against live capture.
+TO-T-07 is the 10-minute bench run that decides whether the rehearsal topology is good enough.

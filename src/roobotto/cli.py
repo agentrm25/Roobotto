@@ -1,5 +1,5 @@
 """Command-line entry point: ``validate-config``, ``schemas export``, ``run --dry-run``, ``bench``,
-``devices``, ``doctor``, ``synth``, ``replay``, ``benchmark`` and ``ui``."""
+``devices``, ``doctor``, ``synth``, ``replay``, ``benchmark``, ``record`` and ``ui``."""
 
 import argparse
 import json
@@ -17,6 +17,7 @@ from roobotto.engine.dry_run import DryRunError, dry_run
 from roobotto.eval import benchmark as benchmark_mod
 from roobotto.eval import replay as replay_mod
 from roobotto.eval import synth
+from roobotto.record import align, capture
 from roobotto.tracker import baselines, follower, propose
 from roobotto.ui import worksheet
 from roobotto.ui.server import make_server
@@ -372,6 +373,118 @@ def _benchmark(args: argparse.Namespace) -> int:
     return 0
 
 
+def _record_session(args: argparse.Namespace) -> int:
+    """Capture from the real devices named in the session file. Input only: nothing is played
+    unless the session's burst names an output device, and no MIDI is sent."""
+    import time as _time
+
+    try:
+        config = capture.load_session(Path(args.session))
+    except capture.CaptureError as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        return 1
+    out = Path(args.out)
+    if (out / "manifest.json").is_file():
+        print(f"error: {out} already holds a take; choose another folder", file=sys.stderr)
+        return 1
+    sources = [
+        capture.SoundDeviceSource(
+            d.id, d.name, max(d.channels) + 1, config.sample_rate, config.block
+        )
+        for d in config.devices
+    ]
+    try:
+        ports = (
+            capture.midi_input_names() if config.midi_ports == "all" else list(config.midi_ports)
+        )
+    except Exception as exc:
+        print(f"MIDI ports could not be listed ({exc}); no MIDI log for this take", file=sys.stderr)
+        ports = []
+    midi = capture.MidiInputLogger(ports, out / "midi.jsonl") if ports else None
+    session = capture.Session(config, out, sources, midi=midi)
+    try:
+        session.start()
+    except Exception as exc:
+        print(f"error: capture could not start: {exc}", file=sys.stderr)
+        return 1
+    print(
+        f"recording to {out}: {', '.join(f'{d.id} ({d.name})' for d in config.devices)}; "
+        f"MIDI ports: {', '.join(ports) or 'none'}"
+    )
+    print("sync burst now (start)")
+    session.mark_burst("start")
+    try:
+        if args.seconds:
+            _time.sleep(args.seconds)
+        else:
+            print("press Ctrl-C to stop")
+            while True:
+                _time.sleep(1)
+    except KeyboardInterrupt:
+        pass
+    print("sync burst now (end)")
+    session.mark_burst("end")
+    result = session.stop()
+    print(
+        f"wrote {out / 'manifest.json'}; frames {result.blocks_written}; "
+        f"flagged blocks {result.overflow_blocks}; MIDI messages {result.midi_messages}"
+    )
+    if result.overflow_blocks:
+        print(
+            "warning: the driver flagged overflow or underflow; the validator marks those "
+            "intervals",
+            file=sys.stderr,
+        )
+    return 0
+
+
+def _record_validate(args: argparse.Namespace) -> int:
+    folder = Path(args.take)
+    if not (folder / "manifest.json").is_file():
+        print(f"error: no take at {folder}", file=sys.stderr)
+        return 1
+    try:
+        info_path = folder / "capture.json"
+        device_of: dict[str, str] = {}
+        if info_path.is_file():
+            info = json.loads(info_path.read_text(encoding="utf-8"))
+            for dev in info.get("devices", []):
+                for stream in dev.get("channels", {}).values():
+                    device_of[str(stream)] = str(dev["id"])
+        report = align.validate(
+            folder, reference=args.reference, tolerance_ms=args.tolerance_ms, device_of=device_of
+        )
+    except (ValueError, OSError) as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        return 1
+    verdict = "PASS" if report.passed else "FAIL"
+    print(f"alignment against '{report.reference}', tolerance {report.tolerance_ms} ms: {verdict}")
+    for s in report.streams:
+        print(
+            f"  {s.stream}: {s.markers} markers, offset {s.offset_ms} ms, drift {s.drift_ppm} ppm,"
+            f" residual max {s.max_residual_ms} ms (raw max {s.max_raw_ms} ms), "
+            f"invalid {len(s.invalid)} interval(s)"
+        )
+        for iv in s.invalid:
+            print(f"      {iv.start_s:.3f}-{iv.end_s:.3f} s: {iv.reason}")
+    print(f"invalid time {report.invalid_total_s} s; wrote {folder / 'alignment.json'}")
+    return 0 if report.passed else 2
+
+
+def _record_correct(args: argparse.Namespace) -> int:
+    folder = Path(args.take)
+    if not (folder / "alignment.json").is_file():
+        print(f"error: run `roobotto record validate {folder}` first", file=sys.stderr)
+        return 1
+    try:
+        out = align.correct(folder)
+    except (ValueError, OSError) as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        return 1
+    print(f"wrote idealized, drift-corrected copies under {out} (never a reported result)")
+    return 0
+
+
 def _ui(args: argparse.Namespace) -> int:
     server = make_server(
         doc=Path(args.doc),
@@ -578,6 +691,32 @@ def build_parser() -> argparse.ArgumentParser:
     bench_cmd.add_argument("protocol", help="protocol YAML (see experiments/protocols/)")
     bench_cmd.add_argument("--out", help="output folder (default: the protocol's `out`)")
     bench_cmd.set_defaults(func=_benchmark)
+
+    record = sub.add_parser("record", help="capture takes and validate their alignment (T-07)")
+    record_sub = record.add_subparsers(dest="record_command", required=True)
+    rec_session = record_sub.add_parser(
+        "session", help="capture from the devices in a session file; input only"
+    )
+    rec_session.add_argument("session", help="session YAML")
+    rec_session.add_argument(
+        "--out", required=True, help="take folder to create (under recordings/)"
+    )
+    rec_session.add_argument(
+        "--seconds", type=float, default=0.0, help="stop after this long (default: Ctrl-C)"
+    )
+    rec_session.set_defaults(func=_record_session)
+    rec_validate = record_sub.add_parser(
+        "validate", help="marker alignment, drift, invalid intervals"
+    )
+    rec_validate.add_argument("take", help="take folder")
+    rec_validate.add_argument("--reference", help="reference stream (default: the first)")
+    rec_validate.add_argument("--tolerance-ms", dest="tolerance_ms", type=float, default=1.0)
+    rec_validate.set_defaults(func=_record_validate)
+    rec_correct = record_sub.add_parser(
+        "correct", help="write idealized drift-corrected copies under corrected/"
+    )
+    rec_correct.add_argument("take", help="take folder")
+    rec_correct.set_defaults(func=_record_correct)
 
     ui = sub.add_parser("ui", help="open the local web workbench (127.0.0.1 only, ADR-018)")
     ui.add_argument(

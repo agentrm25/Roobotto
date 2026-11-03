@@ -763,7 +763,7 @@ Real output requires explicit configuration *and* arming, not just leaving off `
 - `roobotto midi-monitor`
 - `roobotto validate-config`
 - `roobotto schemas export`
-- `roobotto record --session`
+- `roobotto record session <session.yaml> --out <take>`, `record validate <take>`, `record correct <take>` (capture, marker alignment, idealized copies; T-07)
 - `roobotto annotate import`
 - `roobotto synth list | render` (synthetic takes with exact annotations, T-08; audio goes under `recordings/`)
 - `roobotto replay features <take>` (block-by-block causal replay on the simulated clock, T-10)

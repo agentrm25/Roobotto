@@ -20,6 +20,7 @@ from roobotto.messages import (
     OutputAttempt,
     SongInstanceRecord,
 )
+from roobotto.record.capture import SessionConfig
 
 SCHEMAS: dict[str, type[BaseModel]] = {
     "song": Song,
@@ -38,6 +39,7 @@ SCHEMAS: dict[str, type[BaseModel]] = {
     "annotations": Annotations,
     "take_manifest": TakeManifest,
     "protocol": Protocol,
+    "session": SessionConfig,
 }
 
 

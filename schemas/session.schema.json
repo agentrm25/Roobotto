@@ -1,0 +1,243 @@
+{
+  "$defs": {
+    "BurstConfig": {
+      "additionalProperties": false,
+      "description": "The sync burst: an audio click shared by every input. The recorder records when it\nasked for one; detection is the validator's job. Playback is opt-in and needs an output\ndevice named here; nothing plays by default.",
+      "properties": {
+        "hz": {
+          "default": 1000.0,
+          "title": "Hz",
+          "type": "number"
+        },
+        "level": {
+          "default": 0.5,
+          "title": "Level",
+          "type": "number"
+        },
+        "play_on": {
+          "anyOf": [
+            {
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Play On"
+        },
+        "seconds": {
+          "default": 0.05,
+          "title": "Seconds",
+          "type": "number"
+        }
+      },
+      "title": "BurstConfig",
+      "type": "object"
+    },
+    "ClockConfig": {
+      "additionalProperties": false,
+      "description": "Operator-entered: PortAudio cannot read macOS Aggregate Device settings (E-16).",
+      "properties": {
+        "aggregate_device": {
+          "anyOf": [
+            {
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Aggregate Device"
+        },
+        "clock_source": {
+          "anyOf": [
+            {
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Clock Source"
+        },
+        "drift_correction": {
+          "items": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "title": "Drift Correction",
+          "type": "array"
+        },
+        "members": {
+          "items": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "title": "Members",
+          "type": "array"
+        },
+        "notes": {
+          "anyOf": [
+            {
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Notes"
+        }
+      },
+      "title": "ClockConfig",
+      "type": "object"
+    },
+    "DeviceSpec": {
+      "additionalProperties": false,
+      "properties": {
+        "channels": {
+          "additionalProperties": {
+            "enum": [
+              "drums",
+              "bass",
+              "chords",
+              "vocal",
+              "room",
+              "guitar",
+              "helix"
+            ],
+            "type": "string"
+          },
+          "title": "Channels",
+          "type": "object"
+        },
+        "id": {
+          "pattern": "^[a-z][a-z0-9_]{0,63}$",
+          "title": "Id",
+          "type": "string"
+        },
+        "name": {
+          "minLength": 1,
+          "title": "Name",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "channels"
+      ],
+      "title": "DeviceSpec",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "bit_depth": {
+      "default": 24,
+      "enum": [
+        16,
+        24
+      ],
+      "title": "Bit Depth",
+      "type": "integer"
+    },
+    "block": {
+      "default": 512,
+      "minimum": 1,
+      "title": "Block",
+      "type": "integer"
+    },
+    "burst": {
+      "$ref": "#/$defs/BurstConfig"
+    },
+    "clock": {
+      "$ref": "#/$defs/ClockConfig"
+    },
+    "consent": {
+      "enum": [
+        "given",
+        "none"
+      ],
+      "title": "Consent",
+      "type": "string"
+    },
+    "devices": {
+      "items": {
+        "$ref": "#/$defs/DeviceSpec"
+      },
+      "minItems": 1,
+      "title": "Devices",
+      "type": "array"
+    },
+    "id": {
+      "pattern": "^[a-z][a-z0-9_]{0,63}$",
+      "title": "Id",
+      "type": "string"
+    },
+    "kind": {
+      "const": "session",
+      "title": "Kind",
+      "type": "string"
+    },
+    "midi_ports": {
+      "anyOf": [
+        {
+          "const": "all",
+          "type": "string"
+        },
+        {
+          "items": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "type": "array"
+        }
+      ],
+      "default": "all",
+      "title": "Midi Ports"
+    },
+    "sample_rate": {
+      "default": 48000,
+      "minimum": 1,
+      "title": "Sample Rate",
+      "type": "integer"
+    },
+    "schema_version": {
+      "const": 0,
+      "title": "Schema Version",
+      "type": "integer"
+    },
+    "song": {
+      "pattern": "^[a-z][a-z0-9_]{0,63}$",
+      "title": "Song",
+      "type": "string"
+    },
+    "take_type": {
+      "enum": [
+        "rehearsal",
+        "bench"
+      ],
+      "title": "Take Type",
+      "type": "string"
+    }
+  },
+  "required": [
+    "kind",
+    "schema_version",
+    "id",
+    "song",
+    "take_type",
+    "devices",
+    "consent"
+  ],
+  "title": "SessionConfig",
+  "type": "object"
+}

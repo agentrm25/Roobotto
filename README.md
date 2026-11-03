@@ -31,6 +31,7 @@ uv run roobotto replay features recordings/synthetic/synthetic_anthem/nominal --
 uv run roobotto replay baseline recordings/synthetic/synthetic_anthem/drift --method B1   # score a baseline
 uv run roobotto replay follow recordings/synthetic/synthetic_anthem/skip --reference recordings/synthetic/synthetic_anthem/nominal --propose examples   # the follower
 uv run roobotto benchmark experiments/protocols/synthetic-pilot.yaml   # every method over the corpus: CSV, report, plots
+uv run roobotto record session local/sessions/take.yaml --out recordings/take-1   # capture (input only); then `record validate`
 ```
 
 The stack is Python 3.12 with uv (ADR-002). The code is licensed Apache-2.0 (ADR-001).
