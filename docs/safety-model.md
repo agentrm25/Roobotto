@@ -49,6 +49,10 @@ adapter. There is no override (I-1, I-2, ADR-009).
 - `roobotto doctor` and `roobotto devices list` (T-06) read port and device names only. They
   open no MIDI port and no audio stream (checked by `tests/unit/test_devices.py`), and doctor
   reports "ready" for a mock profile without that meaning anything reaches hardware.
+- The feature extractors and the replay harness (T-10) produce evidence only. Nothing in
+  `roobotto.features` or `roobotto.eval` schedules or fires anything (AGENTS.md rule 3); their
+  outputs reach the engine only through the tracker's `MusicalState`, which the decision gate
+  treats as tracker evidence (I-14).
 
 The supervisor also refuses a send when:
 

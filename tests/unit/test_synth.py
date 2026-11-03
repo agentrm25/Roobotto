@@ -3,6 +3,7 @@ exact annotations, deterministically, with causal twins and per-stream dropouts.
 
 import hashlib
 import json
+import re
 from pathlib import Path
 
 import numpy as np
@@ -212,7 +213,8 @@ def test_schemas_cover_annotations_and_manifests() -> None:
 def test_no_randomness_in_the_renderer() -> None:
     for path in (ROOT / "src" / "roobotto" / "eval").glob("*.py"):
         text = path.read_text(encoding="utf-8")
-        assert "random" not in text and "hash(" not in text.replace("hashlib", ""), path.name
+        assert "random" not in text, path.name
+        assert not re.search(r"(?<![\w.])hash\(", text), path.name  # Python's salted hash()
 
 
 def test_cli_renders_a_song(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:

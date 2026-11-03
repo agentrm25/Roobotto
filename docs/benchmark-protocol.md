@@ -22,3 +22,21 @@ evidence of future leakage. The example songs `synthetic_anthem` (4/4), `synthet
 and `synthetic_seven` (7/8) are the three P0 songs.
 
 Synthetic results never count as evidence that following is feasible (Section 9 of the plan).
+
+## Causal replay and features (T-10)
+
+`roobotto replay features <take> [--block 512] [--feeds a,b] [--beats none|oracle] [--drop feed:s:e]`
+replays a take block by block on the simulated clock. A block becomes available when its last
+sample was captured; the future-read guard moves to that instant before any extractor sees it,
+and every read goes through a guarded series that raises on a read past "now" (I-9).
+
+Features per block and feed, from the trailing window only: the onset envelope (spectral flux,
+E-32) and 12-bin chroma (E-33). With `--beats oracle`, beat-synchronous chroma is averaged over
+each beat interval and emitted only once the beat has passed, labeled `source: oracle` because
+the beat times come from the annotations, not from a follower. Input health per feed is `ok`,
+`degraded` (silence over 1.5 s, or clipping) or `lost` (blocks stopped arriving); a lost feed gets
+no made-up frames, and a feed absent from the take is an error, never silence.
+
+Leakage controls checked by tests: the first N blocks give the same records whether or not the
+rest of the take exists; causal twins give identical records before `diverges_at_s`; replay and a
+simulated live run over the same blocks give the same output hash (E-34).
