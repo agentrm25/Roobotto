@@ -59,3 +59,27 @@ counted as unexpected boundaries; accuracy before and after the first deviation;
 in bars, when it happens. On the synthetic corpus B0 fails under drift and B1 fails on skips and
 repeats (E-35); both still have to run on the pilot takes before the T-11 P0 check is complete.
 B2 (online DTW) is P1 and not built.
+
+## Bar-grid follower v0 (T-12)
+
+`roobotto replay follow <take> --reference <nominal take>... [--feeds chords,bass] [--temperature t]
+[--propose <config paths>] [--out follow.json]`.
+
+The follower (`roobotto.tracker.follower`) is an exact forward filter over every beat position of
+the song's bar grid times five tempo bins, with phase from the onset PLL on the drum feed. Per
+beat it predicts along the grid (next beat; at a bar's end the song's successors: next section,
+extension, repeat, graph jumps) plus a small jump-anywhere mass, forward more than back, which is
+how unmodeled deviations are recovered; the grid's bar counts and the song's extend and repeat
+probabilities are the duration prior. It then updates on the beat-synchronous chroma of each
+listening feed against the reference take's chroma at that position (the chroma that arrives
+with beat k describes beat k-1, so a state is matched against its predecessor's reference), with
+a temperature calibrated on development takes (`calibrate_temperature`). It emits a
+`MusicalState` per block with a session id: top hypotheses, beat phase and tempo, the next
+downbeat, a boundary forecast with successor probabilities when the top position ends a section,
+and feed health. Results use the take's as-captured streams only.
+
+`--propose` routes the states through the real engine (mock profile, unarmed, milestone 4,
+ASSISTED, tracker authority on, one GO at the annotated song start): proposals meet the real
+scheduler, decision gate and output supervisor. Nothing can reach hardware; the summary reports
+`fired_physical` so a reader can check it is 0. See E-37 for the synthetic results and E-38 for
+why section-entry cues expire on tracker evidence while bar-counted cues meet the gate.

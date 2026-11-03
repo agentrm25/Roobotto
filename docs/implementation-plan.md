@@ -768,6 +768,7 @@ Real output requires explicit configuration *and* arming, not just leaving off `
 - `roobotto synth list | render` (synthetic takes with exact annotations, T-08; audio goes under `recordings/`)
 - `roobotto replay features <take>` (block-by-block causal replay on the simulated clock, T-10)
 - `roobotto replay baseline <take> --method B0|B1` (score a baseline against the take's annotations, T-11)
+- `roobotto replay follow <take> --reference <take>... [--propose <config>]` (the bar-grid follower, scored; proposals through the real engine in the mock profile, T-12)
 - `roobotto benchmark`
 - `roobotto measure-latency`
 - `roobotto run --dry-run`

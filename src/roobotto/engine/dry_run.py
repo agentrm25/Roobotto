@@ -25,7 +25,8 @@ class DryRunError(ValueError):
     pass
 
 
-def _go_press(show: ShowConfig, t_ns: int, press: bool) -> MidiIn:
+def go_press(show: ShowConfig, t_ns: int, press: bool) -> MidiIn:
+    """The GO switch pressed or released, as the rig's control map defines it."""
     control = next(c for c in show.rig.controls if c.action == "go")
     switch = next(s for s in show.rig.switches if s.id == control.switch)
     if switch.kind == "note":
@@ -54,9 +55,9 @@ def walkthrough(runner: Runner, show: ShowConfig, song_id: str) -> None:
     t = START_NS
     for section in song.sections:
         runner.run_until(t)
-        runner.submit(_go_press(show, t, True))
+        runner.submit(go_press(show, t, True))
         runner.run_until(t + 50_000_000)
-        runner.submit(_go_press(show, t + 50_000_000, False))
+        runner.submit(go_press(show, t + 50_000_000, False))
         t += section.bars * song.beats_per_bar * beat_ns
     runner.run_until(t)
 

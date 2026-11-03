@@ -32,3 +32,19 @@ cues:
     class: decorative
     state: { aum.layer: chorus_pad }
     on_miss: skip
+
+  # Bar-counted inside the chorus: what tracker evidence may fire from M4 (decorative only).
+  - id: chorus_pad_swell
+    at: { section: chorus1, bar: 5, beat: 1 }
+    class: decorative
+    state: { aum.layer: chorus_pad }
+    on_miss: skip
+
+  # Critical, bar-counted: the gate refuses it on tracker evidence alone, whatever the posterior
+  # (ADR-013, I-14). Only a footswitch press can authorize this occurrence.
+  - id: chorus2_lead
+    at: { section: chorus2, bar: 3, beat: 1 }
+    class: critical
+    state: { guitar.snapshot: lead }
+    requires: { posterior_min: 0.95, corroborate_by: [footswitch], within_bars: 2 }
+    on_uncertain: ask
