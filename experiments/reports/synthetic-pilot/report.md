@@ -7,7 +7,7 @@
 | Item | Value |
 |---|---|
 | Protocol | synthetic_pilot |
-| Commit | f46e7593c70bfe1c949b2ea59fb70dcae85e431c |
+| Commit | 19a519a450f2a376e4ff24cffd662c4702569e28 |
 | Config hash (protocol + song files) | 5998974c14f4ccbf4fdd5b17d94b760906eb0ac5bec0887acd53654976a46464 |
 | Methods | B0, B1, B3 |
 | Block size | 512 samples |
@@ -44,9 +44,9 @@ Clean takes, as-captured streams, per annotated beat (the estimate in force at m
 |---|---|---|---|---|---|---|---|---|---|
 | B0 (Fixed timeline from the annotated song start, at nominal tempo) | drums | 18 | 0.858 | 0.752 | 0.925 | 0.0063 | 2.148 | 6.734 | 1/9 |
 | B1 (Beat tracker (onset PLL) plus pure bar counting, no content observation) | drums | 18 | 0.872 | 0.834 | 0.937 | 0.0012 | 1.995 | 6.249 | 1/9 |
-| B3 (Bar-grid follower v0 on the listed feeds) | chords+bass | 18 | 0.977 | 0.972 | 0.988 | 0.0012 | 0.045 | 3.785 | 9/9 |
-| B3 (Bar-grid follower v0 on the listed feeds) | chords | 18 | 0.975 | 0.969 | 0.986 | 0.0012 | 0.045 | 3.897 | 8/9 |
-| B3 (Bar-grid follower v0 on the listed feeds) | bass | 18 | 0.970 | 0.959 | 0.973 | 0.0012 | 0.022 | 4.706 | 6/9 |
+| B3 (Bar-grid follower v0 on the listed feeds) | chords+bass | 18 | 0.991 | 0.986 | 0.995 | 0.0012 | 0.022 | 3.533 | 9/9 |
+| B3 (Bar-grid follower v0 on the listed feeds) | chords | 18 | 0.989 | 0.984 | 0.993 | 0.0012 | 0.022 | 3.626 | 8/9 |
+| B3 (Bar-grid follower v0 on the listed feeds) | bass | 18 | 0.973 | 0.965 | 0.980 | 0.0012 | 0.022 | 5.533 | 6/9 |
 
 ![Accuracy by method](accuracy_by_method.svg)
 
@@ -60,92 +60,92 @@ Clean takes, as-captured streams, per annotated beat (the estimate in force at m
 |---|---|---|---|---|---|---|---|---|
 | B0 | drums | synthetic_anthem/drift | 0.915 | 0.469 |  |  |  | 0 |
 | B1 | drums | synthetic_anthem/drift | 1.000 | 1.000 |  |  |  | 0 |
-| B3 | chords+bass | synthetic_anthem/drift | 0.978 | 0.978 |  |  |  | 0 |
-| B3 | chords | synthetic_anthem/drift | 0.978 | 0.978 |  |  |  | 0 |
+| B3 | chords+bass | synthetic_anthem/drift | 1.000 | 1.000 |  |  |  | 0 |
+| B3 | chords | synthetic_anthem/drift | 1.000 | 1.000 |  |  |  | 0 |
 | B3 | bass | synthetic_anthem/drift | 1.000 | 1.000 |  |  |  | 0 |
 | B0 | drums | synthetic_anthem/dropout | 1.000 | 1.000 |  |  |  | 0 |
 | B1 | drums | synthetic_anthem/dropout | 1.000 | 1.000 |  |  |  | 0 |
-| B3 | chords+bass | synthetic_anthem/dropout | 0.978 | 0.978 |  |  |  | 0 |
-| B3 | chords | synthetic_anthem/dropout | 0.978 | 0.978 |  |  |  | 0 |
+| B3 | chords+bass | synthetic_anthem/dropout | 1.000 | 1.000 |  |  |  | 0 |
+| B3 | chords | synthetic_anthem/dropout | 1.000 | 1.000 |  |  |  | 0 |
 | B3 | bass | synthetic_anthem/dropout | 1.000 | 1.000 |  |  |  | 0 |
 | B0 | drums | synthetic_anthem/extend | 0.867 | 0.750 | 1.000 | 0.500 | 4.0 | 1 |
 | B1 | drums | synthetic_anthem/extend | 0.867 | 0.750 | 1.000 | 0.500 | 4.0 | 1 |
-| B3 | chords+bass | synthetic_anthem/extend | 0.979 | 0.979 | 1.000 | 0.922 | 0.0 | 1 |
-| B3 | chords | synthetic_anthem/extend | 0.979 | 0.979 | 1.000 | 0.922 | 0.0 | 1 |
-| B3 | bass | synthetic_anthem/extend | 0.963 | 0.963 | 1.000 | 0.859 | 2.25 | 1 |
+| B3 | chords+bass | synthetic_anthem/extend | 0.979 | 0.979 | 1.000 | 0.922 | 1.25 | 1 |
+| B3 | chords | synthetic_anthem/extend | 0.979 | 0.979 | 1.000 | 0.922 | 1.25 | 1 |
+| B3 | bass | synthetic_anthem/extend | 0.958 | 0.958 | 1.000 | 0.844 | 2.5 | 1 |
 | B0 | drums | synthetic_anthem/nominal | 1.000 | 1.000 |  |  |  | 0 |
 | B1 | drums | synthetic_anthem/nominal | 1.000 | 1.000 |  |  |  | 0 |
-| B3 | chords+bass | synthetic_anthem/nominal | 0.978 | 0.978 |  |  |  | 0 |
-| B3 | chords | synthetic_anthem/nominal | 0.978 | 0.978 |  |  |  | 0 |
+| B3 | chords+bass | synthetic_anthem/nominal | 1.000 | 1.000 |  |  |  | 0 |
+| B3 | chords | synthetic_anthem/nominal | 1.000 | 1.000 |  |  |  | 0 |
 | B3 | bass | synthetic_anthem/nominal | 1.000 | 1.000 |  |  |  | 0 |
 | B0 | drums | synthetic_anthem/repeat | 0.875 | 0.828 | 1.000 | 0.333 | 8.0 | 1 |
 | B1 | drums | synthetic_anthem/repeat | 0.875 | 0.828 | 1.000 | 0.333 | 8.0 | 1 |
-| B3 | chords+bass | synthetic_anthem/repeat | 0.977 | 0.977 | 0.976 | 0.979 | 0.25 | 1 |
-| B3 | chords | synthetic_anthem/repeat | 0.973 | 0.973 | 0.976 | 0.958 | 0.5 | 1 |
+| B3 | chords+bass | synthetic_anthem/repeat | 0.996 | 0.996 | 1.000 | 0.979 | 0.25 | 1 |
+| B3 | chords | synthetic_anthem/repeat | 0.992 | 0.992 | 1.000 | 0.958 | 0.5 | 1 |
 | B3 | bass | synthetic_anthem/repeat | 0.996 | 0.996 | 1.000 | 0.979 | 0.25 | 1 |
 | B0 | drums | synthetic_anthem/skip | 0.417 | 0.417 | 1.000 | 0.000 |  | 1 |
 | B1 | drums | synthetic_anthem/skip | 0.417 | 0.417 | 1.000 | 0.000 |  | 1 |
-| B3 | chords+bass | synthetic_anthem/skip | 0.943 | 0.865 | 1.000 | 0.902 | 0.25 | 1 |
-| B3 | chords | synthetic_anthem/skip | 0.938 | 0.865 | 1.000 | 0.893 | 0.5 | 1 |
-| B3 | bass | synthetic_anthem/skip | 0.880 | 0.865 | 1.000 | 0.795 | 6.5 | 1 |
+| B3 | chords+bass | synthetic_anthem/skip | 0.958 | 0.885 | 1.000 | 0.929 | 0.5 | 1 |
+| B3 | chords | synthetic_anthem/skip | 0.958 | 0.885 | 1.000 | 0.929 | 0.5 | 1 |
+| B3 | bass | synthetic_anthem/skip | 0.875 | 0.859 | 1.000 | 0.786 | 6.75 | 1 |
 | B0 | drums | synthetic_seven/drift | 0.945 | 0.575 |  |  |  | 0 |
 | B1 | drums | synthetic_seven/drift | 1.000 | 1.000 |  |  |  | 0 |
-| B3 | chords+bass | synthetic_seven/drift | 0.974 | 0.971 |  |  |  | 0 |
-| B3 | chords | synthetic_seven/drift | 0.974 | 0.971 |  |  |  | 0 |
-| B3 | bass | synthetic_seven/drift | 0.977 | 0.938 |  |  |  | 0 |
+| B3 | chords+bass | synthetic_seven/drift | 1.000 | 0.997 |  |  |  | 0 |
+| B3 | chords | synthetic_seven/drift | 1.000 | 0.997 |  |  |  | 0 |
+| B3 | bass | synthetic_seven/drift | 0.997 | 0.971 |  |  |  | 0 |
 | B0 | drums | synthetic_seven/dropout | 1.000 | 1.000 |  |  |  | 0 |
 | B1 | drums | synthetic_seven/dropout | 1.000 | 1.000 |  |  |  | 0 |
-| B3 | chords+bass | synthetic_seven/dropout | 0.974 | 0.971 |  |  |  | 0 |
-| B3 | chords | synthetic_seven/dropout | 0.974 | 0.971 |  |  |  | 0 |
-| B3 | bass | synthetic_seven/dropout | 0.968 | 0.929 |  |  |  | 0 |
+| B3 | chords+bass | synthetic_seven/dropout | 1.000 | 0.997 |  |  |  | 0 |
+| B3 | chords | synthetic_seven/dropout | 1.000 | 0.997 |  |  |  | 0 |
+| B3 | bass | synthetic_seven/dropout | 0.987 | 0.961 |  |  |  | 0 |
 | B0 | drums | synthetic_seven/extend | 0.833 | 0.688 | 1.000 | 0.500 | 4.0 | 1 |
 | B1 | drums | synthetic_seven/extend | 0.833 | 0.688 | 1.000 | 0.500 | 4.0 | 1 |
-| B3 | chords+bass | synthetic_seven/extend | 0.976 | 0.973 | 1.000 | 0.929 | 0.0 | 1 |
-| B3 | chords | synthetic_seven/extend | 0.976 | 0.973 | 1.000 | 0.929 | 0.0 | 1 |
-| B3 | bass | synthetic_seven/extend | 0.988 | 0.952 | 1.000 | 0.964 | 1.0 | 1 |
+| B3 | chords+bass | synthetic_seven/extend | 0.976 | 0.973 | 1.000 | 0.929 | 1.14 | 1 |
+| B3 | chords | synthetic_seven/extend | 0.976 | 0.973 | 1.000 | 0.929 | 1.14 | 1 |
+| B3 | bass | synthetic_seven/extend | 0.973 | 0.949 | 0.996 | 0.929 | 1.14 | 1 |
 | B0 | drums | synthetic_seven/nominal | 1.000 | 1.000 |  |  |  | 0 |
 | B1 | drums | synthetic_seven/nominal | 1.000 | 1.000 |  |  |  | 0 |
-| B3 | chords+bass | synthetic_seven/nominal | 0.974 | 0.971 |  |  |  | 0 |
-| B3 | chords | synthetic_seven/nominal | 0.974 | 0.971 |  |  |  | 0 |
-| B3 | bass | synthetic_seven/nominal | 0.977 | 0.938 |  |  |  | 0 |
+| B3 | chords+bass | synthetic_seven/nominal | 1.000 | 0.997 |  |  |  | 0 |
+| B3 | chords | synthetic_seven/nominal | 1.000 | 0.997 |  |  |  | 0 |
+| B3 | bass | synthetic_seven/nominal | 0.997 | 0.971 |  |  |  | 0 |
 | B0 | drums | synthetic_seven/repeat | 0.846 | 0.788 | 1.000 | 0.333 | 8.0 | 1 |
 | B1 | drums | synthetic_seven/repeat | 0.846 | 0.788 | 1.000 | 0.333 | 8.0 | 1 |
-| B3 | chords+bass | synthetic_seven/repeat | 0.975 | 0.973 | 0.971 | 0.988 | 0.14 | 1 |
-| B3 | chords | synthetic_seven/repeat | 0.975 | 0.973 | 0.971 | 0.988 | 0.14 | 1 |
-| B3 | bass | synthetic_seven/repeat | 0.967 | 0.934 | 0.975 | 0.941 | 0.71 | 1 |
+| B3 | chords+bass | synthetic_seven/repeat | 0.997 | 0.995 | 1.000 | 0.988 | 0.14 | 1 |
+| B3 | chords | synthetic_seven/repeat | 0.997 | 0.995 | 1.000 | 0.988 | 0.14 | 1 |
+| B3 | bass | synthetic_seven/repeat | 0.984 | 0.962 | 0.996 | 0.941 | 0.71 | 1 |
 | B0 | drums | synthetic_seven/skip | 0.444 | 0.444 | 1.000 | 0.000 |  | 1 |
 | B1 | drums | synthetic_seven/skip | 0.444 | 0.444 | 1.000 | 0.000 |  | 1 |
-| B3 | chords+bass | synthetic_seven/skip | 0.960 | 0.956 | 1.000 | 0.929 | 0.29 | 1 |
-| B3 | chords | synthetic_seven/skip | 0.960 | 0.956 | 1.000 | 0.929 | 0.29 | 1 |
+| B3 | chords+bass | synthetic_seven/skip | 0.988 | 0.984 | 1.000 | 0.979 | 0.43 | 1 |
+| B3 | chords | synthetic_seven/skip | 0.988 | 0.984 | 1.000 | 0.979 | 0.43 | 1 |
 | B3 | bass | synthetic_seven/skip | 0.968 | 0.956 | 1.000 | 0.943 | 1.14 | 1 |
 | B0 | drums | synthetic_waltz/drift | 0.889 | 0.476 |  |  |  | 0 |
 | B1 | drums | synthetic_waltz/drift | 1.000 | 1.000 |  |  |  | 0 |
-| B3 | chords+bass | synthetic_waltz/drift | 0.992 | 0.992 |  |  |  | 0 |
-| B3 | chords | synthetic_waltz/drift | 0.992 | 0.992 |  |  |  | 0 |
+| B3 | chords+bass | synthetic_waltz/drift | 1.000 | 1.000 |  |  |  | 0 |
+| B3 | chords | synthetic_waltz/drift | 1.000 | 1.000 |  |  |  | 0 |
 | B3 | bass | synthetic_waltz/drift | 1.000 | 1.000 |  |  |  | 0 |
 | B0 | drums | synthetic_waltz/dropout | 1.000 | 1.000 |  |  |  | 0 |
 | B1 | drums | synthetic_waltz/dropout | 1.000 | 1.000 |  |  |  | 0 |
-| B3 | chords+bass | synthetic_waltz/dropout | 0.992 | 0.992 |  |  |  | 0 |
-| B3 | chords | synthetic_waltz/dropout | 0.992 | 0.992 |  |  |  | 0 |
+| B3 | chords+bass | synthetic_waltz/dropout | 1.000 | 1.000 |  |  |  | 0 |
+| B3 | chords | synthetic_waltz/dropout | 1.000 | 1.000 |  |  |  | 0 |
 | B3 | bass | synthetic_waltz/dropout | 1.000 | 1.000 |  |  |  | 0 |
 | B0 | drums | synthetic_waltz/extend | 0.864 | 0.568 | 1.000 | 0.700 | 2.0 | 1 |
 | B1 | drums | synthetic_waltz/extend | 0.864 | 0.568 | 1.000 | 0.700 | 2.0 | 1 |
-| B3 | chords+bass | synthetic_waltz/extend | 0.992 | 0.992 | 1.000 | 0.983 | 0.0 | 1 |
-| B3 | chords | synthetic_waltz/extend | 0.992 | 0.992 | 1.000 | 0.983 | 0.0 | 1 |
+| B3 | chords+bass | synthetic_waltz/extend | 0.992 | 0.992 | 1.000 | 0.983 | 0.33 | 1 |
+| B3 | chords | synthetic_waltz/extend | 0.992 | 0.992 | 1.000 | 0.983 | 0.33 | 1 |
 | B3 | bass | synthetic_waltz/extend | 0.992 | 0.992 | 1.000 | 0.983 | 0.33 | 1 |
 | B0 | drums | synthetic_waltz/nominal | 1.000 | 1.000 |  |  |  | 0 |
 | B1 | drums | synthetic_waltz/nominal | 1.000 | 1.000 |  |  |  | 0 |
-| B3 | chords+bass | synthetic_waltz/nominal | 0.992 | 0.992 |  |  |  | 0 |
-| B3 | chords | synthetic_waltz/nominal | 0.992 | 0.992 |  |  |  | 0 |
+| B3 | chords+bass | synthetic_waltz/nominal | 1.000 | 1.000 |  |  |  | 0 |
+| B3 | chords | synthetic_waltz/nominal | 1.000 | 1.000 |  |  |  | 0 |
 | B3 | bass | synthetic_waltz/nominal | 1.000 | 1.000 |  |  |  | 0 |
 | B0 | drums | synthetic_waltz/repeat | 0.840 | 0.820 | 1.000 | 0.200 | 8.0 | 1 |
 | B1 | drums | synthetic_waltz/repeat | 0.840 | 0.820 | 1.000 | 0.200 | 8.0 | 1 |
-| B3 | chords+bass | synthetic_waltz/repeat | 0.987 | 0.987 | 0.992 | 0.967 | 0.33 | 1 |
-| B3 | chords | synthetic_waltz/repeat | 0.987 | 0.987 | 0.992 | 0.967 | 0.33 | 1 |
+| B3 | chords+bass | synthetic_waltz/repeat | 0.993 | 0.993 | 1.000 | 0.967 | 0.33 | 1 |
+| B3 | chords | synthetic_waltz/repeat | 0.993 | 0.993 | 1.000 | 0.967 | 0.33 | 1 |
 | B3 | bass | synthetic_waltz/repeat | 0.967 | 0.967 | 1.000 | 0.833 | 1.67 | 1 |
 | B0 | drums | synthetic_waltz/skip | 0.706 | 0.706 | 1.000 | 0.000 |  | 1 |
 | B1 | drums | synthetic_waltz/skip | 0.706 | 0.706 | 1.000 | 0.000 |  | 1 |
-| B3 | chords+bass | synthetic_waltz/skip | 0.971 | 0.971 | 1.000 | 0.900 | 1.0 | 1 |
+| B3 | chords+bass | synthetic_waltz/skip | 0.961 | 0.961 | 1.000 | 0.867 | 1.33 | 1 |
 | B3 | chords | synthetic_waltz/skip | 0.931 | 0.931 | 1.000 | 0.767 | 2.33 | 1 |
 | B3 | bass | synthetic_waltz/skip | 0.824 | 0.824 | 1.000 | 0.400 | 6.0 | 1 |
 
@@ -159,20 +159,20 @@ Blocks of the named feed are withheld for the interval (the feed reads `lost`, n
 | chords_lost_40_52 | B0 | drums | synthetic_anthem/drift | 0.915 | 0.915 | 0.000 |
 | drums_lost_20_30 | B1 | drums | synthetic_anthem/drift | 0.933 | 1.000 | -0.067 |
 | chords_lost_40_52 | B1 | drums | synthetic_anthem/drift | 1.000 | 1.000 | 0.000 |
-| drums_lost_20_30 | B3 | chords+bass | synthetic_anthem/drift | 0.911 | 0.978 | -0.067 |
-| chords_lost_40_52 | B3 | chords+bass | synthetic_anthem/drift | 0.978 | 0.978 | 0.000 |
-| drums_lost_20_30 | B3 | chords | synthetic_anthem/drift | 0.911 | 0.978 | -0.067 |
-| chords_lost_40_52 | B3 | chords | synthetic_anthem/drift | 0.978 | 0.978 | 0.000 |
+| drums_lost_20_30 | B3 | chords+bass | synthetic_anthem/drift | 0.933 | 1.000 | -0.067 |
+| chords_lost_40_52 | B3 | chords+bass | synthetic_anthem/drift | 1.000 | 1.000 | 0.000 |
+| drums_lost_20_30 | B3 | chords | synthetic_anthem/drift | 0.933 | 1.000 | -0.067 |
+| chords_lost_40_52 | B3 | chords | synthetic_anthem/drift | 1.000 | 1.000 | 0.000 |
 | drums_lost_20_30 | B3 | bass | synthetic_anthem/drift | 0.933 | 1.000 | -0.067 |
 | chords_lost_40_52 | B3 | bass | synthetic_anthem/drift | 1.000 | 1.000 | 0.000 |
 | drums_lost_20_30 | B0 | drums | synthetic_anthem/dropout | 1.000 | 1.000 | 0.000 |
 | chords_lost_40_52 | B0 | drums | synthetic_anthem/dropout | 1.000 | 1.000 | 0.000 |
 | drums_lost_20_30 | B1 | drums | synthetic_anthem/dropout | 0.938 | 1.000 | -0.062 |
 | chords_lost_40_52 | B1 | drums | synthetic_anthem/dropout | 1.000 | 1.000 | 0.000 |
-| drums_lost_20_30 | B3 | chords+bass | synthetic_anthem/dropout | 0.915 | 0.978 | -0.062 |
-| chords_lost_40_52 | B3 | chords+bass | synthetic_anthem/dropout | 0.978 | 0.978 | 0.000 |
-| drums_lost_20_30 | B3 | chords | synthetic_anthem/dropout | 0.915 | 0.978 | -0.062 |
-| chords_lost_40_52 | B3 | chords | synthetic_anthem/dropout | 0.978 | 0.978 | 0.000 |
+| drums_lost_20_30 | B3 | chords+bass | synthetic_anthem/dropout | 0.938 | 1.000 | -0.062 |
+| chords_lost_40_52 | B3 | chords+bass | synthetic_anthem/dropout | 1.000 | 1.000 | 0.000 |
+| drums_lost_20_30 | B3 | chords | synthetic_anthem/dropout | 0.938 | 1.000 | -0.062 |
+| chords_lost_40_52 | B3 | chords | synthetic_anthem/dropout | 1.000 | 1.000 | 0.000 |
 | drums_lost_20_30 | B3 | bass | synthetic_anthem/dropout | 0.938 | 1.000 | -0.062 |
 | chords_lost_40_52 | B3 | bass | synthetic_anthem/dropout | 1.000 | 1.000 | 0.000 |
 | drums_lost_20_30 | B0 | drums | synthetic_anthem/extend | 0.867 | 0.867 | 0.000 |
@@ -183,58 +183,58 @@ Blocks of the named feed are withheld for the interval (the feed reads `lost`, n
 | chords_lost_40_52 | B3 | chords+bass | synthetic_anthem/extend | 0.979 | 0.979 | 0.000 |
 | drums_lost_20_30 | B3 | chords | synthetic_anthem/extend | 0.921 | 0.979 | -0.058 |
 | chords_lost_40_52 | B3 | chords | synthetic_anthem/extend | 0.979 | 0.979 | 0.000 |
-| drums_lost_20_30 | B3 | bass | synthetic_anthem/extend | 0.904 | 0.963 | -0.058 |
-| chords_lost_40_52 | B3 | bass | synthetic_anthem/extend | 0.963 | 0.963 | 0.000 |
+| drums_lost_20_30 | B3 | bass | synthetic_anthem/extend | 0.900 | 0.958 | -0.058 |
+| chords_lost_40_52 | B3 | bass | synthetic_anthem/extend | 0.958 | 0.958 | 0.000 |
 | drums_lost_20_30 | B0 | drums | synthetic_anthem/nominal | 1.000 | 1.000 | 0.000 |
 | chords_lost_40_52 | B0 | drums | synthetic_anthem/nominal | 1.000 | 1.000 | 0.000 |
 | drums_lost_20_30 | B1 | drums | synthetic_anthem/nominal | 0.938 | 1.000 | -0.062 |
 | chords_lost_40_52 | B1 | drums | synthetic_anthem/nominal | 1.000 | 1.000 | 0.000 |
-| drums_lost_20_30 | B3 | chords+bass | synthetic_anthem/nominal | 0.915 | 0.978 | -0.062 |
-| chords_lost_40_52 | B3 | chords+bass | synthetic_anthem/nominal | 0.978 | 0.978 | 0.000 |
-| drums_lost_20_30 | B3 | chords | synthetic_anthem/nominal | 0.915 | 0.978 | -0.062 |
-| chords_lost_40_52 | B3 | chords | synthetic_anthem/nominal | 0.978 | 0.978 | 0.000 |
+| drums_lost_20_30 | B3 | chords+bass | synthetic_anthem/nominal | 0.938 | 1.000 | -0.062 |
+| chords_lost_40_52 | B3 | chords+bass | synthetic_anthem/nominal | 1.000 | 1.000 | 0.000 |
+| drums_lost_20_30 | B3 | chords | synthetic_anthem/nominal | 0.938 | 1.000 | -0.062 |
+| chords_lost_40_52 | B3 | chords | synthetic_anthem/nominal | 1.000 | 1.000 | 0.000 |
 | drums_lost_20_30 | B3 | bass | synthetic_anthem/nominal | 0.938 | 1.000 | -0.062 |
 | chords_lost_40_52 | B3 | bass | synthetic_anthem/nominal | 1.000 | 1.000 | 0.000 |
 | drums_lost_20_30 | B0 | drums | synthetic_anthem/repeat | 0.875 | 0.875 | 0.000 |
 | chords_lost_40_52 | B0 | drums | synthetic_anthem/repeat | 0.875 | 0.875 | 0.000 |
 | drums_lost_20_30 | B1 | drums | synthetic_anthem/repeat | 0.820 | 0.875 | -0.055 |
 | chords_lost_40_52 | B1 | drums | synthetic_anthem/repeat | 0.875 | 0.875 | 0.000 |
-| drums_lost_20_30 | B3 | chords+bass | synthetic_anthem/repeat | 0.922 | 0.977 | -0.055 |
-| chords_lost_40_52 | B3 | chords+bass | synthetic_anthem/repeat | 0.977 | 0.977 | 0.000 |
-| drums_lost_20_30 | B3 | chords | synthetic_anthem/repeat | 0.918 | 0.973 | -0.055 |
-| chords_lost_40_52 | B3 | chords | synthetic_anthem/repeat | 0.973 | 0.973 | 0.000 |
+| drums_lost_20_30 | B3 | chords+bass | synthetic_anthem/repeat | 0.941 | 0.996 | -0.055 |
+| chords_lost_40_52 | B3 | chords+bass | synthetic_anthem/repeat | 0.996 | 0.996 | 0.000 |
+| drums_lost_20_30 | B3 | chords | synthetic_anthem/repeat | 0.938 | 0.992 | -0.055 |
+| chords_lost_40_52 | B3 | chords | synthetic_anthem/repeat | 0.992 | 0.992 | 0.000 |
 | drums_lost_20_30 | B3 | bass | synthetic_anthem/repeat | 0.941 | 0.996 | -0.055 |
 | chords_lost_40_52 | B3 | bass | synthetic_anthem/repeat | 0.996 | 0.996 | 0.000 |
 | drums_lost_20_30 | B0 | drums | synthetic_anthem/skip | 0.417 | 0.417 | 0.000 |
 | chords_lost_40_52 | B0 | drums | synthetic_anthem/skip | 0.417 | 0.417 | 0.000 |
 | drums_lost_20_30 | B1 | drums | synthetic_anthem/skip | 0.344 | 0.417 | -0.073 |
 | chords_lost_40_52 | B1 | drums | synthetic_anthem/skip | 0.417 | 0.417 | 0.000 |
-| drums_lost_20_30 | B3 | chords+bass | synthetic_anthem/skip | 0.870 | 0.943 | -0.073 |
-| chords_lost_40_52 | B3 | chords+bass | synthetic_anthem/skip | 0.901 | 0.943 | -0.042 |
-| drums_lost_20_30 | B3 | chords | synthetic_anthem/skip | 0.865 | 0.938 | -0.073 |
-| chords_lost_40_52 | B3 | chords | synthetic_anthem/skip | 0.870 | 0.938 | -0.068 |
-| drums_lost_20_30 | B3 | bass | synthetic_anthem/skip | 0.807 | 0.880 | -0.073 |
-| chords_lost_40_52 | B3 | bass | synthetic_anthem/skip | 0.880 | 0.880 | 0.000 |
+| drums_lost_20_30 | B3 | chords+bass | synthetic_anthem/skip | 0.885 | 0.958 | -0.073 |
+| chords_lost_40_52 | B3 | chords+bass | synthetic_anthem/skip | 0.922 | 0.958 | -0.036 |
+| drums_lost_20_30 | B3 | chords | synthetic_anthem/skip | 0.885 | 0.958 | -0.073 |
+| chords_lost_40_52 | B3 | chords | synthetic_anthem/skip | 0.922 | 0.958 | -0.036 |
+| drums_lost_20_30 | B3 | bass | synthetic_anthem/skip | 0.802 | 0.875 | -0.073 |
+| chords_lost_40_52 | B3 | bass | synthetic_anthem/skip | 0.875 | 0.875 | 0.000 |
 | drums_lost_20_30 | B0 | drums | synthetic_seven/drift | 0.945 | 0.945 | 0.000 |
 | chords_lost_40_52 | B0 | drums | synthetic_seven/drift | 0.945 | 0.945 | 0.000 |
 | drums_lost_20_30 | B1 | drums | synthetic_seven/drift | 0.945 | 1.000 | -0.055 |
 | chords_lost_40_52 | B1 | drums | synthetic_seven/drift | 1.000 | 1.000 | 0.000 |
-| drums_lost_20_30 | B3 | chords+bass | synthetic_seven/drift | 0.919 | 0.974 | -0.055 |
-| chords_lost_40_52 | B3 | chords+bass | synthetic_seven/drift | 0.974 | 0.974 | 0.000 |
-| drums_lost_20_30 | B3 | chords | synthetic_seven/drift | 0.919 | 0.974 | -0.055 |
-| chords_lost_40_52 | B3 | chords | synthetic_seven/drift | 0.974 | 0.974 | 0.000 |
-| drums_lost_20_30 | B3 | bass | synthetic_seven/drift | 0.922 | 0.977 | -0.055 |
-| chords_lost_40_52 | B3 | bass | synthetic_seven/drift | 0.977 | 0.977 | 0.000 |
+| drums_lost_20_30 | B3 | chords+bass | synthetic_seven/drift | 0.945 | 1.000 | -0.055 |
+| chords_lost_40_52 | B3 | chords+bass | synthetic_seven/drift | 1.000 | 1.000 | 0.000 |
+| drums_lost_20_30 | B3 | chords | synthetic_seven/drift | 0.945 | 1.000 | -0.055 |
+| chords_lost_40_52 | B3 | chords | synthetic_seven/drift | 1.000 | 1.000 | 0.000 |
+| drums_lost_20_30 | B3 | bass | synthetic_seven/drift | 0.942 | 0.997 | -0.055 |
+| chords_lost_40_52 | B3 | bass | synthetic_seven/drift | 0.997 | 0.997 | 0.000 |
 | drums_lost_20_30 | B0 | drums | synthetic_seven/dropout | 1.000 | 1.000 | 0.000 |
 | chords_lost_40_52 | B0 | drums | synthetic_seven/dropout | 1.000 | 1.000 | 0.000 |
 | drums_lost_20_30 | B1 | drums | synthetic_seven/dropout | 0.945 | 1.000 | -0.055 |
 | chords_lost_40_52 | B1 | drums | synthetic_seven/dropout | 1.000 | 1.000 | 0.000 |
-| drums_lost_20_30 | B3 | chords+bass | synthetic_seven/dropout | 0.919 | 0.974 | -0.055 |
-| chords_lost_40_52 | B3 | chords+bass | synthetic_seven/dropout | 0.974 | 0.974 | 0.000 |
-| drums_lost_20_30 | B3 | chords | synthetic_seven/dropout | 0.919 | 0.974 | -0.055 |
-| chords_lost_40_52 | B3 | chords | synthetic_seven/dropout | 0.974 | 0.974 | 0.000 |
-| drums_lost_20_30 | B3 | bass | synthetic_seven/dropout | 0.912 | 0.968 | -0.055 |
-| chords_lost_40_52 | B3 | bass | synthetic_seven/dropout | 0.968 | 0.968 | 0.000 |
+| drums_lost_20_30 | B3 | chords+bass | synthetic_seven/dropout | 0.945 | 1.000 | -0.055 |
+| chords_lost_40_52 | B3 | chords+bass | synthetic_seven/dropout | 1.000 | 1.000 | 0.000 |
+| drums_lost_20_30 | B3 | chords | synthetic_seven/dropout | 0.945 | 1.000 | -0.055 |
+| chords_lost_40_52 | B3 | chords | synthetic_seven/dropout | 1.000 | 1.000 | 0.000 |
+| drums_lost_20_30 | B3 | bass | synthetic_seven/dropout | 0.932 | 0.987 | -0.055 |
+| chords_lost_40_52 | B3 | bass | synthetic_seven/dropout | 0.987 | 0.987 | 0.000 |
 | drums_lost_20_30 | B0 | drums | synthetic_seven/extend | 0.833 | 0.833 | 0.000 |
 | chords_lost_40_52 | B0 | drums | synthetic_seven/extend | 0.833 | 0.833 | 0.000 |
 | drums_lost_20_30 | B1 | drums | synthetic_seven/extend | 0.783 | 0.833 | -0.051 |
@@ -243,56 +243,56 @@ Blocks of the named feed are withheld for the interval (the feed reads `lost`, n
 | chords_lost_40_52 | B3 | chords+bass | synthetic_seven/extend | 0.976 | 0.976 | 0.000 |
 | drums_lost_20_30 | B3 | chords | synthetic_seven/extend | 0.926 | 0.976 | -0.051 |
 | chords_lost_40_52 | B3 | chords | synthetic_seven/extend | 0.976 | 0.976 | 0.000 |
-| drums_lost_20_30 | B3 | bass | synthetic_seven/extend | 0.938 | 0.988 | -0.051 |
-| chords_lost_40_52 | B3 | bass | synthetic_seven/extend | 0.988 | 0.988 | 0.000 |
+| drums_lost_20_30 | B3 | bass | synthetic_seven/extend | 0.923 | 0.973 | -0.051 |
+| chords_lost_40_52 | B3 | bass | synthetic_seven/extend | 0.973 | 0.973 | 0.000 |
 | drums_lost_20_30 | B0 | drums | synthetic_seven/nominal | 1.000 | 1.000 | 0.000 |
 | chords_lost_40_52 | B0 | drums | synthetic_seven/nominal | 1.000 | 1.000 | 0.000 |
 | drums_lost_20_30 | B1 | drums | synthetic_seven/nominal | 0.945 | 1.000 | -0.055 |
 | chords_lost_40_52 | B1 | drums | synthetic_seven/nominal | 1.000 | 1.000 | 0.000 |
-| drums_lost_20_30 | B3 | chords+bass | synthetic_seven/nominal | 0.919 | 0.974 | -0.055 |
-| chords_lost_40_52 | B3 | chords+bass | synthetic_seven/nominal | 0.974 | 0.974 | 0.000 |
-| drums_lost_20_30 | B3 | chords | synthetic_seven/nominal | 0.919 | 0.974 | -0.055 |
-| chords_lost_40_52 | B3 | chords | synthetic_seven/nominal | 0.974 | 0.974 | 0.000 |
-| drums_lost_20_30 | B3 | bass | synthetic_seven/nominal | 0.922 | 0.977 | -0.055 |
-| chords_lost_40_52 | B3 | bass | synthetic_seven/nominal | 0.977 | 0.977 | 0.000 |
+| drums_lost_20_30 | B3 | chords+bass | synthetic_seven/nominal | 0.945 | 1.000 | -0.055 |
+| chords_lost_40_52 | B3 | chords+bass | synthetic_seven/nominal | 1.000 | 1.000 | 0.000 |
+| drums_lost_20_30 | B3 | chords | synthetic_seven/nominal | 0.945 | 1.000 | -0.055 |
+| chords_lost_40_52 | B3 | chords | synthetic_seven/nominal | 1.000 | 1.000 | 0.000 |
+| drums_lost_20_30 | B3 | bass | synthetic_seven/nominal | 0.942 | 0.997 | -0.055 |
+| chords_lost_40_52 | B3 | bass | synthetic_seven/nominal | 0.997 | 0.997 | 0.000 |
 | drums_lost_20_30 | B0 | drums | synthetic_seven/repeat | 0.846 | 0.846 | 0.000 |
 | chords_lost_40_52 | B0 | drums | synthetic_seven/repeat | 0.846 | 0.846 | 0.000 |
 | drums_lost_20_30 | B1 | drums | synthetic_seven/repeat | 0.799 | 0.846 | -0.047 |
 | chords_lost_40_52 | B1 | drums | synthetic_seven/repeat | 0.846 | 0.846 | 0.000 |
-| drums_lost_20_30 | B3 | chords+bass | synthetic_seven/repeat | 0.929 | 0.975 | -0.047 |
-| chords_lost_40_52 | B3 | chords+bass | synthetic_seven/repeat | 0.975 | 0.975 | 0.000 |
-| drums_lost_20_30 | B3 | chords | synthetic_seven/repeat | 0.929 | 0.975 | -0.047 |
-| chords_lost_40_52 | B3 | chords | synthetic_seven/repeat | 0.975 | 0.975 | 0.000 |
-| drums_lost_20_30 | B3 | bass | synthetic_seven/repeat | 0.920 | 0.967 | -0.047 |
-| chords_lost_40_52 | B3 | bass | synthetic_seven/repeat | 0.967 | 0.967 | 0.000 |
+| drums_lost_20_30 | B3 | chords+bass | synthetic_seven/repeat | 0.951 | 0.997 | -0.047 |
+| chords_lost_40_52 | B3 | chords+bass | synthetic_seven/repeat | 0.997 | 0.997 | 0.000 |
+| drums_lost_20_30 | B3 | chords | synthetic_seven/repeat | 0.951 | 0.997 | -0.047 |
+| chords_lost_40_52 | B3 | chords | synthetic_seven/repeat | 0.997 | 0.997 | 0.000 |
+| drums_lost_20_30 | B3 | bass | synthetic_seven/repeat | 0.937 | 0.984 | -0.047 |
+| chords_lost_40_52 | B3 | bass | synthetic_seven/repeat | 0.984 | 0.984 | 0.000 |
 | drums_lost_20_30 | B0 | drums | synthetic_seven/skip | 0.444 | 0.444 | 0.000 |
 | chords_lost_40_52 | B0 | drums | synthetic_seven/skip | 0.444 | 0.444 | 0.000 |
 | drums_lost_20_30 | B1 | drums | synthetic_seven/skip | 0.377 | 0.444 | -0.067 |
 | chords_lost_40_52 | B1 | drums | synthetic_seven/skip | 0.444 | 0.444 | 0.000 |
-| drums_lost_20_30 | B3 | chords+bass | synthetic_seven/skip | 0.893 | 0.960 | -0.067 |
-| chords_lost_40_52 | B3 | chords+bass | synthetic_seven/skip | 0.932 | 0.960 | -0.028 |
-| drums_lost_20_30 | B3 | chords | synthetic_seven/skip | 0.893 | 0.960 | -0.067 |
-| chords_lost_40_52 | B3 | chords | synthetic_seven/skip | 0.901 | 0.960 | -0.059 |
+| drums_lost_20_30 | B3 | chords+bass | synthetic_seven/skip | 0.921 | 0.988 | -0.068 |
+| chords_lost_40_52 | B3 | chords+bass | synthetic_seven/skip | 0.964 | 0.988 | -0.024 |
+| drums_lost_20_30 | B3 | chords | synthetic_seven/skip | 0.921 | 0.988 | -0.068 |
+| chords_lost_40_52 | B3 | chords | synthetic_seven/skip | 0.901 | 0.988 | -0.087 |
 | drums_lost_20_30 | B3 | bass | synthetic_seven/skip | 0.901 | 0.968 | -0.068 |
 | chords_lost_40_52 | B3 | bass | synthetic_seven/skip | 0.968 | 0.968 | 0.000 |
 | drums_lost_20_30 | B0 | drums | synthetic_waltz/drift | 0.889 | 0.889 | 0.000 |
 | chords_lost_40_52 | B0 | drums | synthetic_waltz/drift | 0.889 | 0.889 | 0.000 |
 | drums_lost_20_30 | B1 | drums | synthetic_waltz/drift | 0.913 | 1.000 | -0.087 |
 | chords_lost_40_52 | B1 | drums | synthetic_waltz/drift | 1.000 | 1.000 | 0.000 |
-| drums_lost_20_30 | B3 | chords+bass | synthetic_waltz/drift | 0.905 | 0.992 | -0.087 |
-| chords_lost_40_52 | B3 | chords+bass | synthetic_waltz/drift | 1.000 | 0.992 | 0.008 |
-| drums_lost_20_30 | B3 | chords | synthetic_waltz/drift | 0.905 | 0.992 | -0.087 |
-| chords_lost_40_52 | B3 | chords | synthetic_waltz/drift | 1.000 | 0.992 | 0.008 |
+| drums_lost_20_30 | B3 | chords+bass | synthetic_waltz/drift | 0.913 | 1.000 | -0.087 |
+| chords_lost_40_52 | B3 | chords+bass | synthetic_waltz/drift | 1.000 | 1.000 | 0.000 |
+| drums_lost_20_30 | B3 | chords | synthetic_waltz/drift | 0.913 | 1.000 | -0.087 |
+| chords_lost_40_52 | B3 | chords | synthetic_waltz/drift | 1.000 | 1.000 | 0.000 |
 | drums_lost_20_30 | B3 | bass | synthetic_waltz/drift | 0.913 | 1.000 | -0.087 |
 | chords_lost_40_52 | B3 | bass | synthetic_waltz/drift | 1.000 | 1.000 | 0.000 |
 | drums_lost_20_30 | B0 | drums | synthetic_waltz/dropout | 1.000 | 1.000 | 0.000 |
 | chords_lost_40_52 | B0 | drums | synthetic_waltz/dropout | 1.000 | 1.000 | 0.000 |
 | drums_lost_20_30 | B1 | drums | synthetic_waltz/dropout | 0.921 | 1.000 | -0.079 |
 | chords_lost_40_52 | B1 | drums | synthetic_waltz/dropout | 1.000 | 1.000 | 0.000 |
-| drums_lost_20_30 | B3 | chords+bass | synthetic_waltz/dropout | 0.913 | 0.992 | -0.079 |
-| chords_lost_40_52 | B3 | chords+bass | synthetic_waltz/dropout | 1.000 | 0.992 | 0.008 |
-| drums_lost_20_30 | B3 | chords | synthetic_waltz/dropout | 0.913 | 0.992 | -0.079 |
-| chords_lost_40_52 | B3 | chords | synthetic_waltz/dropout | 1.000 | 0.992 | 0.008 |
+| drums_lost_20_30 | B3 | chords+bass | synthetic_waltz/dropout | 0.921 | 1.000 | -0.079 |
+| chords_lost_40_52 | B3 | chords+bass | synthetic_waltz/dropout | 1.000 | 1.000 | 0.000 |
+| drums_lost_20_30 | B3 | chords | synthetic_waltz/dropout | 0.921 | 1.000 | -0.079 |
+| chords_lost_40_52 | B3 | chords | synthetic_waltz/dropout | 1.000 | 1.000 | 0.000 |
 | drums_lost_20_30 | B3 | bass | synthetic_waltz/dropout | 0.921 | 1.000 | -0.079 |
 | chords_lost_40_52 | B3 | bass | synthetic_waltz/dropout | 1.000 | 1.000 | 0.000 |
 | drums_lost_20_30 | B0 | drums | synthetic_waltz/extend | 0.864 | 0.864 | 0.000 |
@@ -309,28 +309,28 @@ Blocks of the named feed are withheld for the interval (the feed reads `lost`, n
 | chords_lost_40_52 | B0 | drums | synthetic_waltz/nominal | 1.000 | 1.000 | 0.000 |
 | drums_lost_20_30 | B1 | drums | synthetic_waltz/nominal | 0.921 | 1.000 | -0.079 |
 | chords_lost_40_52 | B1 | drums | synthetic_waltz/nominal | 1.000 | 1.000 | 0.000 |
-| drums_lost_20_30 | B3 | chords+bass | synthetic_waltz/nominal | 0.913 | 0.992 | -0.079 |
-| chords_lost_40_52 | B3 | chords+bass | synthetic_waltz/nominal | 1.000 | 0.992 | 0.008 |
-| drums_lost_20_30 | B3 | chords | synthetic_waltz/nominal | 0.913 | 0.992 | -0.079 |
-| chords_lost_40_52 | B3 | chords | synthetic_waltz/nominal | 1.000 | 0.992 | 0.008 |
+| drums_lost_20_30 | B3 | chords+bass | synthetic_waltz/nominal | 0.921 | 1.000 | -0.079 |
+| chords_lost_40_52 | B3 | chords+bass | synthetic_waltz/nominal | 1.000 | 1.000 | 0.000 |
+| drums_lost_20_30 | B3 | chords | synthetic_waltz/nominal | 0.921 | 1.000 | -0.079 |
+| chords_lost_40_52 | B3 | chords | synthetic_waltz/nominal | 1.000 | 1.000 | 0.000 |
 | drums_lost_20_30 | B3 | bass | synthetic_waltz/nominal | 0.921 | 1.000 | -0.079 |
 | chords_lost_40_52 | B3 | bass | synthetic_waltz/nominal | 1.000 | 1.000 | 0.000 |
 | drums_lost_20_30 | B0 | drums | synthetic_waltz/repeat | 0.840 | 0.840 | 0.000 |
 | chords_lost_40_52 | B0 | drums | synthetic_waltz/repeat | 0.840 | 0.840 | 0.000 |
 | drums_lost_20_30 | B1 | drums | synthetic_waltz/repeat | 0.773 | 0.840 | -0.067 |
 | chords_lost_40_52 | B1 | drums | synthetic_waltz/repeat | 0.840 | 0.840 | 0.000 |
-| drums_lost_20_30 | B3 | chords+bass | synthetic_waltz/repeat | 0.920 | 0.987 | -0.067 |
-| chords_lost_40_52 | B3 | chords+bass | synthetic_waltz/repeat | 0.993 | 0.987 | 0.007 |
-| drums_lost_20_30 | B3 | chords | synthetic_waltz/repeat | 0.920 | 0.987 | -0.067 |
-| chords_lost_40_52 | B3 | chords | synthetic_waltz/repeat | 0.993 | 0.987 | 0.007 |
+| drums_lost_20_30 | B3 | chords+bass | synthetic_waltz/repeat | 0.927 | 0.993 | -0.067 |
+| chords_lost_40_52 | B3 | chords+bass | synthetic_waltz/repeat | 0.993 | 0.993 | 0.000 |
+| drums_lost_20_30 | B3 | chords | synthetic_waltz/repeat | 0.927 | 0.993 | -0.067 |
+| chords_lost_40_52 | B3 | chords | synthetic_waltz/repeat | 0.993 | 0.993 | 0.000 |
 | drums_lost_20_30 | B3 | bass | synthetic_waltz/repeat | 0.900 | 0.967 | -0.067 |
 | chords_lost_40_52 | B3 | bass | synthetic_waltz/repeat | 0.967 | 0.967 | 0.000 |
 | drums_lost_20_30 | B0 | drums | synthetic_waltz/skip | 0.706 | 0.706 | 0.000 |
 | chords_lost_40_52 | B0 | drums | synthetic_waltz/skip | 0.706 | 0.706 | 0.000 |
 | drums_lost_20_30 | B1 | drums | synthetic_waltz/skip | 0.608 | 0.706 | -0.098 |
 | chords_lost_40_52 | B1 | drums | synthetic_waltz/skip | 0.706 | 0.706 | 0.000 |
-| drums_lost_20_30 | B3 | chords+bass | synthetic_waltz/skip | 0.873 | 0.971 | -0.098 |
-| chords_lost_40_52 | B3 | chords+bass | synthetic_waltz/skip | 0.892 | 0.971 | -0.078 |
+| drums_lost_20_30 | B3 | chords+bass | synthetic_waltz/skip | 0.863 | 0.961 | -0.098 |
+| chords_lost_40_52 | B3 | chords+bass | synthetic_waltz/skip | 0.892 | 0.961 | -0.069 |
 | drums_lost_20_30 | B3 | chords | synthetic_waltz/skip | 0.833 | 0.931 | -0.098 |
 | chords_lost_40_52 | B3 | chords | synthetic_waltz/skip | 0.863 | 0.931 | -0.069 |
 | drums_lost_20_30 | B3 | bass | synthetic_waltz/skip | 0.726 | 0.824 | -0.098 |

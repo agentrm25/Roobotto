@@ -75,6 +75,12 @@ def _run(args: argparse.Namespace) -> int:
             song=args.song,
             performance=args.performance,
             trace=Path(args.trace) if args.trace else None,
+            replay_take=Path(args.replay) if args.replay else None,
+            reference=Path(args.reference) if args.reference else None,
+            milestone=args.milestone,
+            feeds=[f for f in (args.feeds or "").split(",") if f] or None,
+            block=args.block,
+            log=Path(args.log) if args.log else None,
         )
     except DryRunError as exc:
         print(f"error: {exc}", file=sys.stderr)
@@ -425,6 +431,19 @@ def build_parser() -> argparse.ArgumentParser:
     run.add_argument("--song", help="song id for the walkthrough (default: first in setlist)")
     run.add_argument("--performance", default="dry_run", help="performance id (default: dry_run)")
     run.add_argument("--trace", help="replay this consumed input trace instead of a walkthrough")
+    run.add_argument(
+        "--replay", help="a take folder: the follower listens and drives the engine (T-14)"
+    )
+    run.add_argument("--reference", help="reference take for --replay (default: sibling nominal)")
+    run.add_argument(
+        "--milestone",
+        type=int,
+        default=1,
+        help="engine milestone setting (default 1; 4+ lets tracker evidence schedule cues)",
+    )
+    run.add_argument("--feeds", help="follower feeds for --replay (default: chords,bass)")
+    run.add_argument("--block", type=int, default=512, help="block size for --replay")
+    run.add_argument("--log", help="write the JSONL decision log here")
     run.set_defaults(func=_run)
 
     bench = sub.add_parser(

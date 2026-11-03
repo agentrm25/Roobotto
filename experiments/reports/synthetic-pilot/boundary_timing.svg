@@ -11,13 +11,13 @@
 <rect x="207.2" y="55.9" width="89.6" height="204.1" fill="#2a4d8f"/>
 <text x="252.0" y="51.9" text-anchor="middle">6.25</text>
 <text x="252.0" y="276" text-anchor="middle">B1</text>
-<rect x="335.2" y="136.3" width="89.6" height="123.7" fill="#2a4d8f"/>
-<text x="380.0" y="132.3" text-anchor="middle">3.79</text>
+<rect x="335.2" y="144.6" width="89.6" height="115.4" fill="#2a4d8f"/>
+<text x="380.0" y="140.6" text-anchor="middle">3.53</text>
 <text x="380.0" y="276" text-anchor="middle">B3 chords+bass</text>
-<rect x="463.2" y="132.7" width="89.6" height="127.3" fill="#2a4d8f"/>
-<text x="508.0" y="128.7" text-anchor="middle">3.9</text>
+<rect x="463.2" y="141.6" width="89.6" height="118.4" fill="#2a4d8f"/>
+<text x="508.0" y="137.6" text-anchor="middle">3.63</text>
 <text x="508.0" y="276" text-anchor="middle">B3 chords</text>
-<rect x="591.2" y="106.3" width="89.6" height="153.7" fill="#2a4d8f"/>
-<text x="636.0" y="102.3" text-anchor="middle">4.71</text>
+<rect x="591.2" y="79.2" width="89.6" height="180.8" fill="#2a4d8f"/>
+<text x="636.0" y="75.2" text-anchor="middle">5.53</text>
 <text x="636.0" y="276" text-anchor="middle">B3 bass</text>
 </svg>

@@ -112,3 +112,15 @@ feasible. The pilot protocol is written when WP5 delivers the takes, with `label
 
 Plots are SVG written by the tool itself; no plotting library is a dependency yet. Reports are
 byte-for-byte reproducible on one machine (`timing.csv` aside).
+
+## Dry-run demo (T-14)
+
+`roobotto run --dry-run --replay <take> [--reference <take>] [--milestone N] [--feeds a,b]
+[--log decisions.jsonl] <config paths>`: the bar-grid follower listens to the take and its
+`MusicalState` stream drives the real engine (mock profile, unarmed, MIDI adapter disabled).
+Every decision is printed and, with `--log`, written as JSONL with the run id, config hash and
+clock time. `experiments/reports/dry-run-demo/` holds the transcript and log from
+`synthetic_anthem/nominal` at milestone 5, where standard cues may fire on tracker evidence:
+the MVP scene change lands within a beat of the annotated chorus downbeat and goes to the mock
+adapter; the critical cue is refused (I-14). A run on a pilot take is reviewed locally and never
+committed.

@@ -21,6 +21,7 @@ here talks to real hardware.
 
 ```
 uv run roobotto run --dry-run examples   # print the outputs a walkthrough would plan
+uv run roobotto run --dry-run --replay recordings/synthetic/synthetic_anthem/nominal --milestone 5 examples   # the follower drives the engine; mock only
 uv run roobotto ui                       # the local workbench in your browser (127.0.0.1 only)
 uv run roobotto bench list               # the same bench worksheet, on the command line
 uv run roobotto doctor                   # is this machine and config ready? each failure names a fix

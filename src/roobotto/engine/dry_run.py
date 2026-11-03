@@ -2,8 +2,11 @@
 
 Without a trace, the walkthrough selects the song, presses the GO switch once at the start of
 each section at the song's nominal tempo, and ticks every beat. With a trace, it replays the
-recorded inputs. Either way the run is unarmed, the MIDI adapter is disabled and the fired
-ledger is in memory, so every send goes to the mock adapter and nothing persists.
+recorded inputs. With ``--replay <take>`` (T-14), the bar-grid follower listens to the take and
+its ``MusicalState`` stream drives the engine, so cue intents land on the downbeats the follower
+predicts and meet the real decision gate and output supervisor. Every way, the run is unarmed,
+the MIDI adapter is disabled and the fired ledger is in memory, so every send goes to the mock
+adapter and nothing persists. Every decision is printed, and logged as JSONL when asked.
 """
 
 from collections.abc import Sequence
@@ -89,7 +92,21 @@ def _describe(record: dict[str, Any], origin: int) -> str | None:
     if record["type"] == "back":
         return f"{seconds:9.3f} s  BACK    {record['event']}"
     if record["type"] == "visit":
-        return f"{seconds:9.3f} s  ENTER   {record['section']} visit {record['visit']}"
+        return (
+            f"{seconds:9.3f} s  ENTER   {record['section']} visit {record['visit']} "
+            f"(via {record.get('via')})"
+        )
+    if record["type"] == "decision" and record.get("kind") == "fire":
+        return f"{seconds:9.3f} s  FIRE    {where}  ({record['reason']})"
+    if record["type"] == "planned":
+        due = (record["due_ns"] - origin) / NS_PER_S
+        return f"{seconds:9.3f} s  PLAN    {where}  due {due:.3f} s"
+    if record["type"] == "tracker" and record.get("event") in (
+        "authority_enabled",
+        "authority_suspended",
+        "ignored",
+    ):
+        return f"{seconds:9.3f} s  TRACKER {record['event']}  ({record.get('reason', '')})"
     return None
 
 
@@ -99,13 +116,23 @@ def dry_run(
     song: str | None = None,
     performance: str = "dry_run",
     trace: Path | None = None,
+    replay_take: Path | None = None,
+    reference: Path | None = None,
+    milestone: int = 1,
+    feeds: Sequence[str] | None = None,
+    block: int = 512,
+    log: Path | None = None,
 ) -> list[str]:
     try:
-        show = load_show(paths, EngineSettings(performance=performance))
+        show = load_show(paths, EngineSettings(performance=performance, milestone=milestone))
     except (ShowConfigError, ValueError) as exc:
         raise DryRunError(str(exc)) from exc
 
-    if trace is not None:
+    if replay_take is not None:
+        if trace is not None:
+            raise DryRunError("--replay and --trace are different sources; give one")
+        spine, title = _replay_take(show, replay_take, reference, feeds, block, log, performance)
+    elif trace is not None:
         try:
             spine = replay(show, load_trace(trace))
         except (TraceError, ReplayMismatchError, OSError) as exc:
@@ -125,7 +152,7 @@ def dry_run(
     lines = [
         f"Dry run: {title}",
         f"Rig '{show.rig.id}' ({show.rig.profile} profile), performance '{performance}', "
-        f"config {show.config_hash[:12]}",
+        f"milestone {milestone}, config {show.config_hash[:12]}",
         "Outputs are not armed and the MIDI adapter is disabled: every send goes to the mock "
         "adapter.",
         "",
@@ -138,3 +165,41 @@ def dry_run(
         f"{sends} planned send(s), {refusals} refusal(s). Decision hash {spine.decision_hash()}",
     ]
     return lines
+
+
+def _replay_take(
+    show: ShowConfig,
+    take: Path,
+    reference: Path | None,
+    feeds: Sequence[str] | None,
+    block: int,
+    log: Path | None,
+    performance: str,
+) -> tuple[Spine, str]:
+    """The follower listens to the take; its states drive the engine (T-14)."""
+    from roobotto.record.jsonl import JsonlLog
+    from roobotto.tracker import follower, propose
+
+    ref_dir = reference if reference is not None else take.parent / "nominal"
+    if not (ref_dir / "manifest.json").is_file():
+        raise DryRunError(f"no reference take at {ref_dir}; give --reference")
+    if not (take / "manifest.json").is_file():
+        raise DryRunError(f"no take at {take}")
+    chosen = tuple(feeds) if feeds else follower.DEFAULT_FEEDS
+    try:
+        ref = follower.build_reference([ref_dir], feeds=chosen, block=block)
+        result = follower.run_follower(
+            take, ref, config=follower.FollowerConfig(feeds=chosen), block=block
+        )
+    except (follower.FollowerError, ValueError, OSError) as exc:
+        raise DryRunError(str(exc)) from exc
+    if result.song.id not in show.songs:
+        raise DryRunError(f"the take's song '{result.song.id}' is not in the config")
+    jsonl = JsonlLog(log, run_id=performance, config_hash=show.config_hash)
+    spine = propose.drive(result, show, run_id=performance, log=jsonl)
+    title = (
+        f"replay of take {result.annotations.take} with the bar-grid follower on "
+        f"{', '.join(chosen)} (reference {ref_dir.name}); follower accuracy "
+        f"{result.score.section_visit_accuracy:.3f} section+visit per beat"
+    )
+    return spine, title

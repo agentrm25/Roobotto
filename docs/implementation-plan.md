@@ -771,7 +771,7 @@ Real output requires explicit configuration *and* arming, not just leaving off `
 - `roobotto replay follow <take> --reference <take>... [--propose <config>]` (the bar-grid follower, scored; proposals through the real engine in the mock profile, T-12)
 - `roobotto benchmark <protocol.yaml>` (methods x feed subsets x fault injections over the corpus; CSV, Markdown report, SVG plots; T-13)
 - `roobotto measure-latency`
-- `roobotto run --dry-run`
+- `roobotto run --dry-run [--replay <take> --milestone N --log <jsonl>]` (walkthrough, trace replay, or the follower driving the engine on a take; mock adapter only, T-14)
 - `roobotto ui` (the local web workbench, ADR-018; every screen calls the same functions as the commands above)
 - `roobotto bench list | show | record` (the CLI twin of the workbench's bench-worksheet screen)
 
