@@ -31,6 +31,7 @@ Revise in place and bump the revision number; don't create copies.
 | TO | Title | Serves | Rev | Status |
 |---|---|---|---|---|
 | [TO-T-06](TO-T-06-doctor-and-devices.md) | First run of `doctor` and `devices list` on the Mac | T-06 (P0 bench check); prepares R-2, H-6, M-1 | 1 | ready |
+| [TO-T-07](TO-T-07-capture-marker-test.md) | 10-minute capture validation with a shared marker signal | T-07 done-when 1 and 3; day-14 item 4 | 1 | ready |
 
 Status values: `draft` · `ready` · `executed` · `superseded`.
 

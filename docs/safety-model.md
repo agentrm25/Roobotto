@@ -62,6 +62,11 @@ adapter. There is no override (I-1, I-2, ADR-009).
   evidence, to the mock adapter only. The milestone is a per-run setting, never config, and the
   dry run is unarmed with the MIDI adapter disabled whatever the milestone. Critical cues are
   refused at every milestone (I-14).
+- The recorder (`roobotto record session`, T-07) only listens: audio in through sounddevice,
+  MIDI in through mido input ports. It opens no output and sends nothing; essential guitar and
+  vocal audio is captured, never passed through (rule 9). Its audio callback copies, stamps and
+  appends to a deque and nothing else (rule 8; `tests/unit/test_recorder.py` inspects it). The
+  sync burst is marked in the log, not played, unless a session names an output device.
 
 The supervisor also refuses a send when:
 
